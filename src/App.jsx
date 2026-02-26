@@ -9,6 +9,7 @@ import Login from './Pages/Login';
 import Register from './Pages/Register';
 import PendingApproval from './Pages/PendingApproval';
 import KycForm from './Pages/KycForm';
+import Careers from './Pages/Careers';
 
 import DashboardLayout from './Components/DashboardLayout';
 import Dashboard from './Pages/Dashboard';
@@ -23,6 +24,7 @@ import ManageUsers from './Admin/ManageUsers';
 import KycRequests from './Admin/KycRequests';
 import ManageBots from './Admin/ManageBots';
 import BotRequests from './Admin/BotRequests';
+import AdminCareers from './Admin/AdminCareers';
 
 import { getUserByUid } from './api';
 
@@ -92,7 +94,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Admin Protected Route (unchanged)
+// Admin Protected Route
 const AdminProtectedRoute = ({ children }) => {
   const [authUser, setAuthUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +137,7 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
+        <Route path="/careers" element={<Careers />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin-login" element={<AdminLogin />} />
@@ -171,6 +174,7 @@ function App() {
           <Route path="kyc" element={<KycRequests />} />
           <Route path="bots" element={<ManageBots />} />
           <Route path="bot-requests" element={<BotRequests />} />
+          <Route path="careers" element={<AdminCareers />} />
         </Route>
 
         {/* Fallback */}

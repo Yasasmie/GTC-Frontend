@@ -57,7 +57,7 @@ const AdminNav = () => {
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { name: 'Manage Users', icon: Users, path: '/admin/users' },
-    /*{ name: 'Manage Roles', icon: Shield, path: '/admin/roles' },*/
+    { name: 'Manage Careers', icon: FileText, path: '/admin/careers' },
     /*{ name: 'Manage Packages', icon: Package, path: '/admin/packages' },*/
     /*{ name: 'Manage Brokers', icon: Wallet, path: '/admin/brokers' },
     { name: 'Manage Accounts', icon: FileText, path: '/admin/accounts' },*/
