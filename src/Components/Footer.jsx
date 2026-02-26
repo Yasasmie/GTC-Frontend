@@ -39,11 +39,11 @@ const Footer = () => {
                  </svg>
                </div>
                <span className="text-2xl font-bold tracking-tighter">
-                 Asset<span className="text-amber-500">Farm</span>
+                 FX<span className="text-amber-500">Gold</span>
                </span>
             </Link>
             <p className="text-gray-400 text-sm">
-              Email: <a href="mailto:info@assetfarm.com" className="hover:text-amber-500 transition-colors">info@assetfarm.com</a>
+              Email: <a href="mailto:info@assetfarm.com" className="hover:text-amber-500 transition-colors">fxgoldsupport@gmail.com</a>
             </p>
             
             {/* Social Icons */}
@@ -72,10 +72,10 @@ const Footer = () => {
             <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-wider">Useful Links</h3>
             <ul className="space-y-4">
               <FooterLink to="/">Home</FooterLink>
-              <FooterLink to="/about">About us</FooterLink>
-              <FooterLink to="/services">Services</FooterLink>
-              <FooterLink to="/terms">Terms of service</FooterLink>
-              <FooterLink to="/privacy">Privacy policy</FooterLink>
+              <FooterLink to="/#about">About Us</FooterLink>
+              <FooterLink to="/#courses">Courses</FooterLink>
+              <FooterLink to="/careers">Join Our Team</FooterLink>
+              <FooterLink to="/privacy">Privacy Policy</FooterLink>
             </ul>
           </div>
 
@@ -83,11 +83,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-wider">Our Services</h3>
             <ul className="space-y-4">
-              <FooterLink to="/services/forex">Forex Education</FooterLink>
-              <FooterLink to="/services/gold">Gold Signals</FooterLink>
-              <FooterLink to="/services/indicators">Custom MT4/MT5 Indicators</FooterLink>
-              <FooterLink to="/services/bots">Trading Automation</FooterLink>
-              <FooterLink to="/services/copy-trading">Elite Copy Trading</FooterLink>
+              <FooterLink to="/#services">Forex Education</FooterLink>
+              <FooterLink to="/#services">Gold Signals</FooterLink>
+              <FooterLink to="/#services">Trading Bots</FooterLink>
+              <FooterLink to="/#services">Copy Trading</FooterLink>
             </ul>
           </div>
 
@@ -116,10 +115,10 @@ const Footer = () => {
         {/* Footer Bottom */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} <strong className="text-white">Asset Farm</strong>. All Rights Reserved
+            &copy; {new Date().getFullYear()} <strong className="text-white">FX Gold</strong>. All Rights Reserved
           </p>
           <p className="text-gray-500 text-sm mt-2 md:mt-0">
-            Designed by <span className="text-amber-500 font-bold">AF Academy</span>
+            Designed by <span className="text-amber-500 font-bold">FX Gold</span>
           </p>
         </div>
       </div>
@@ -139,13 +138,31 @@ const Footer = () => {
 };
 
 // Sub-components for cleaner code
-const FooterLink = ({ to, children }) => (
-  <li>
-    <Link to={to} className="text-gray-400 hover:text-amber-500 transition-colors flex items-center group">
-      <span className="text-amber-500 mr-2 transform group-hover:translate-x-1 transition-transform">›</span> {children}
-    </Link>
-  </li>
-);
+const FooterLink = ({ to, children }) => {
+  // Logic to handle anchor scrolling if on the same page
+  const handleClick = (e) => {
+    if (to.startsWith('/#')) {
+      const id = to.split('#')[1];
+      const element = document.getElementById(id);
+      if (element) {
+        e.preventDefault();
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  return (
+    <li>
+      <Link 
+        to={to} 
+        onClick={handleClick}
+        className="text-gray-400 hover:text-amber-500 transition-colors flex items-center group"
+      >
+        <span className="text-amber-500 mr-2 transform group-hover:translate-x-1 transition-transform">›</span> {children}
+      </Link>
+    </li>
+  );
+};
 
 const SocialIcon = ({ href, label, children }) => (
   <a 

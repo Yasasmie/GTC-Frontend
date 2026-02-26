@@ -124,8 +124,13 @@ const Home = () => {
               </h3>
               
               <p className="text-gray-400 mb-6 leading-relaxed">
-                Established in 2025, Asset Farm Academy is founded by seasoned professionals with over eight years of experience. We provide comprehensive Forex education, real-time gold signals, and advanced trading tools.
-              </p>
+                At FX Gold Technologies, we specialize in developing advanced MetaTrader 5 (MT5) Expert Advisor (EA) systems designed specifically for the gold trading market. Our mission is to empower traders and investors with intelligent automation tools that enhance trading efficiency, accuracy, and profitability.
+
+                Beyond software development, we are building a strong network of sales agents—both full-time and part-time—who share our vision of expanding access to smart trading solutions worldwide. We provide comprehensive support and training for our partners, enabling them to grow alongside us in a fast-moving financial technology environment.
+
+                In addition to our trading innovations, FX Gold Technologies is committed to personal and professional development. We conduct training programs and personality development sessions aimed at individuals who aspire to build financial independence and explore new income opportunities through technology-driven trading.
+
+                Driven by a passion for innovation and excellence, we continue to deliver dependable, result-oriented systems that transform the way traders engage with the global gold market.              </p>
               
               <ul className="space-y-3">
                 {[
@@ -156,14 +161,14 @@ const Home = () => {
             <motion.div variants={fadeInUp} className="bg-zinc-900/50 p-8 rounded-2xl border border-amber-500/20">
               <h3 className="text-2xl font-bold text-amber-500 mb-4 uppercase">OUR MISSION</h3>
               <p className="text-gray-400 leading-relaxed">
-                To empower traders at all levels by providing innovative tools, comprehensive education, and elite market insights.
+                Our mission is to empower traders worldwide through innovative automated trading technologies that simplify and optimize the gold trading process. We strive to deliver reliable MT5 Expert Advisors, provide continuous education, and create income opportunities for individuals seeking financial growth through technology and smart trading strategies.
               </p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="bg-zinc-900/50 p-8 rounded-2xl border border-amber-500/20">
               <h3 className="text-2xl font-bold text-amber-500 mb-4 uppercase">OUR VISION</h3>
               <p className="text-gray-400 leading-relaxed">
-                To be the global leader in Forex technology, recognized for excellence, integrity, and profitable communities.
+                Our vision is to become a global leader in AI-powered gold trading solutions, recognized for our commitment to innovation, transparency, and professional development. We aim to build a thriving community of traders, partners, and learners working together toward sustainable financial success.
               </p>
             </motion.div>
           </motion.div>
@@ -224,10 +229,10 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: "Forex Education", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
-              { title: "Gold Signals", icon: "M12 3v1m0 16v1m9-9h-1M4 12H3" },
-              { title: "Trading Bots", icon: "M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3" },
-              { title: "Copy Trading", icon: "M8 7h12m0 0l-4-4m4 4l-4 4" }
+              { title: "MT5 Gold Trading Bot Development", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+              { title: "Partner & Sales Agent Program", icon: "M12 3v1m0 16v1m9-9h-1M4 12H3" },
+              { title: "Personality & Skill Development Programs", icon: "M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3" },
+              { title: "Trading & Income Growth Workshops", icon: "M8 7h12m0 0l-4-4m4 4l-4 4" }
             ].map((service, idx) => (
               <motion.div key={idx} variants={fadeInUp} className="bg-black p-6 rounded-2xl border border-white/5 hover:border-amber-500/40 transition-all text-center group">
                 <div className="mb-4 flex justify-center text-amber-500 group-hover:scale-110 transition-transform">
@@ -236,7 +241,6 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">{service.title}</h3>
-                <p className="text-gray-500 text-sm">Elite tools for the modern profitable trader.</p>
               </motion.div>
             ))}
           </div>
@@ -257,7 +261,7 @@ const Home = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-4 text-amber-500">
                   <span className="font-bold">Email:</span>
-                  <span className="text-gray-300">support@assetfarm.com</span>
+                  <span className="text-gray-300">fxgoldsupport@gmail.com</span>
                 </div>
               </div>
             </div>
