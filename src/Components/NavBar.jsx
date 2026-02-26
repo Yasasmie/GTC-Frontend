@@ -52,7 +52,7 @@ const NavBar = () => {
   return (
     <nav
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'
+        scrolled ? 'bg-black/90 backdrop-blur-md border-b border-amber-500/20 py-2' : 'bg-transparent py-4'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,10 +78,10 @@ const NavBar = () => {
               <div className="flex flex-col">
                 <span
                   className={`font-bold text-2xl leading-none transition-colors ${
-                    scrolled ? 'text-gray-900' : 'text-white'
+                    scrolled ? 'text-white' : 'text-white'
                   }`}
                 >
-                  Asset<span className="text-green-500"> Farm</span>
+                  Asset<span className="text-amber-500"> Farm</span>
                 </span>
               </div>
             </div>
@@ -89,27 +89,14 @@ const NavBar = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            {/* When on "/", use react-scroll; otherwise navigate then scroll */}
             {isHome ? (
               <>
-                <NavLink to="home" scrolled={scrolled}>
-                  Home
-                </NavLink>
-                <NavLink to="about" scrolled={scrolled}>
-                  About
-                </NavLink>
-                <NavLink to="courses" scrolled={scrolled}>
-                  Courses
-                </NavLink>
-                <NavLink to="services" scrolled={scrolled}>
-                  Services
-                </NavLink>
-                <NavLink to="team" scrolled={scrolled}>
-                  Team
-                </NavLink>
-                <NavLink to="contact" scrolled={scrolled}>
-                  Contact
-                </NavLink>
+                <NavLink to="home" scrolled={scrolled}>Home</NavLink>
+                <NavLink to="about" scrolled={scrolled}>About</NavLink>
+                <NavLink to="courses" scrolled={scrolled}>Courses</NavLink>
+                <NavLink to="services" scrolled={scrolled}>Services</NavLink>
+                <NavLink to="team" scrolled={scrolled}>Team</NavLink>
+                <NavLink to="contact" scrolled={scrolled}>Contact</NavLink>
               </>
             ) : (
               <>
@@ -128,7 +115,7 @@ const NavBar = () => {
               onClick={goToCareers}
               className={`text-sm font-medium transition-colors ${
                 scrolled
-                  ? 'text-gray-700 hover:text-green-600'
+                  ? 'text-gray-300 hover:text-amber-500'
                   : 'text-gray-200 hover:text-white'
               }`}
             >
@@ -141,37 +128,17 @@ const NavBar = () => {
             <button
               onClick={toggleMenu}
               className={`p-2 rounded-md ${
-                scrolled ? 'text-gray-900' : 'text-white'
+                scrolled ? 'text-white' : 'text-white'
               }`}
             >
               <span className="sr-only">Open menu</span>
               {isOpen ? (
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
             </button>
@@ -181,84 +148,39 @@ const NavBar = () => {
 
       {/* Mobile Menu Dropdown */}
       <div
-        className={`md:hidden bg-white absolute w-full transition-all duration-300 ease-in-out ${
+        className={`md:hidden bg-zinc-900 absolute w-full transition-all duration-300 ease-in-out border-b border-amber-500/20 ${
           isOpen ? 'max-h-96 opacity-100 shadow-xl' : 'max-h-0 opacity-0 overflow-hidden'
         }`}
       >
         <div className="px-4 pt-4 pb-6 space-y-2">
           {isHome ? (
             <>
-              <MobileNavLink to="home" onClick={toggleMenu}>
-                Home
-              </MobileNavLink>
-              <MobileNavLink to="about" onClick={toggleMenu}>
-                About
-              </MobileNavLink>
-              <MobileNavLink to="courses" onClick={toggleMenu}>
-                Courses
-              </MobileNavLink>
-              <MobileNavLink to="services" onClick={toggleMenu}>
-                Services
-              </MobileNavLink>
-              <MobileNavLink to="team" onClick={toggleMenu}>
-                Team
-              </MobileNavLink>
-              <MobileNavLink to="contact" onClick={toggleMenu}>
-                Contact
-              </MobileNavLink>
+              <MobileNavLink to="home" onClick={toggleMenu}>Home</MobileNavLink>
+              <MobileNavLink to="about" onClick={toggleMenu}>About</MobileNavLink>
+              <MobileNavLink to="courses" onClick={toggleMenu}>Courses</MobileNavLink>
+              <MobileNavLink to="services" onClick={toggleMenu}>Services</MobileNavLink>
+              <MobileNavLink to="team" onClick={toggleMenu}>Team</MobileNavLink>
+              <MobileNavLink to="contact" onClick={toggleMenu}>Contact</MobileNavLink>
             </>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('home')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('about')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                About
-              </button>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('courses')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                Courses
-              </button>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('services')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                Services
-              </button>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('team')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                Team
-              </button>
-              <button
-                type="button"
-                onClick={() => goToHomeAndScroll('contact')}
-                className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
-              >
-                Contact
-              </button>
+              {['home', 'about', 'courses', 'services', 'team', 'contact'].map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => goToHomeAndScroll(item)}
+                  className="block w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-amber-500/10 hover:text-amber-500 font-medium capitalize"
+                >
+                  {item}
+                </button>
+              ))}
             </>
           )}
 
-          {/* Careers in mobile dropdown */}
           <button
             type="button"
             onClick={goToCareers}
-            className="block w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium"
+            className="block w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-amber-500/10 hover:text-amber-500 font-medium"
           >
             Careers
           </button>
@@ -278,13 +200,13 @@ const NavLink = ({ to, children, scrolled }) => (
     duration={500}
     className={`cursor-pointer text-sm font-medium transition-colors relative group ${
       scrolled
-        ? 'text-gray-700 hover:text-green-600'
+        ? 'text-gray-300 hover:text-amber-500'
         : 'text-gray-200 hover:text-white'
     }`}
-    activeClass="!text-green-500 font-bold"
+    activeClass="!text-amber-500 font-bold"
   >
     {children}
-    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-500 transition-all duration-300 group-hover:w-full"></span>
+    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-amber-500 transition-all duration-300 group-hover:w-full"></span>
   </ScrollLink>
 );
 
@@ -295,7 +217,7 @@ const SimpleLink = ({ label, scrolled, onClick }) => (
     onClick={onClick}
     className={`text-sm font-medium transition-colors ${
       scrolled
-        ? 'text-gray-700 hover:text-green-600'
+        ? 'text-gray-300 hover:text-amber-500'
         : 'text-gray-200 hover:text-white'
     }`}
   >
@@ -312,8 +234,8 @@ const MobileNavLink = ({ to, children, onClick }) => (
     offset={-80}
     duration={500}
     onClick={onClick}
-    className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-600 font-medium cursor-pointer"
-    activeClass="bg-green-50 text-green-600 font-bold"
+    className="block px-4 py-3 rounded-lg text-gray-300 hover:bg-amber-500/10 hover:text-amber-500 font-medium cursor-pointer"
+    activeClass="bg-amber-500/10 text-amber-500 font-bold"
   >
     {children}
   </ScrollLink>
