@@ -81,7 +81,7 @@ const NavBar = () => {
                     scrolled ? 'text-white' : 'text-white'
                   }`}
                 >
-                  Asset<span className="text-amber-500"> Farm</span>
+                  FX<span className="text-amber-500"> Gold</span>
                 </span>
               </div>
             </div>

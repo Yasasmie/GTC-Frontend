@@ -74,7 +74,7 @@ const Careers = () => {
       <main className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
         <header className="mb-10 text-center">
           <h1 className="text-4xl font-extrabold text-white mb-3">
-            Join Asset <span className="text-amber-500">Farm</span>
+            Join FX <span className="text-amber-500">Gold</span>
           </h1>
           <div className="h-1 w-20 bg-amber-500 mx-auto mb-4 rounded-full"></div>
           <p className="text-gray-400 max-w-md mx-auto">
