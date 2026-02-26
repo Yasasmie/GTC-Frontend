@@ -66,7 +66,7 @@ const Home = () => {
           className="relative z-10 text-center px-4 max-w-5xl mx-auto mt-16"
         >
           <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-6 drop-shadow-2xl">
-            LEARN. TRADE. <br />
+            LEARN. PRACTICE. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600">
               SUCCEED.
             </span>
@@ -161,15 +161,13 @@ const Home = () => {
             <motion.div variants={fadeInUp} className="bg-zinc-900/50 p-8 rounded-2xl border border-amber-500/20">
               <h3 className="text-2xl font-bold text-amber-500 mb-4 uppercase">OUR MISSION</h3>
               <p className="text-gray-400 leading-relaxed">
-                Our mission is to empower traders worldwide through innovative automated trading technologies that simplify and optimize the gold trading process. We strive to deliver reliable MT5 Expert Advisors, provide continuous education, and create income opportunities for individuals seeking financial growth through technology and smart trading strategies.
-              </p>
+Our mission is to bring together people from all walks of life, provide them with the knowledge and training they need, guide them toward the right path, and help them build strong economic foundations to become valuable and independent individuals.              </p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="bg-zinc-900/50 p-8 rounded-2xl border border-amber-500/20">
               <h3 className="text-2xl font-bold text-amber-500 mb-4 uppercase">OUR VISION</h3>
               <p className="text-gray-400 leading-relaxed">
-                Our vision is to become a global leader in AI-powered gold trading solutions, recognized for our commitment to innovation, transparency, and professional development. We aim to build a thriving community of traders, partners, and learners working together toward sustainable financial success.
-              </p>
+To create a world where individuals are economically empowered, well-educated, and personally developed—becoming confident and capable contributors to society.              </p>
             </motion.div>
           </motion.div>
         </div>
