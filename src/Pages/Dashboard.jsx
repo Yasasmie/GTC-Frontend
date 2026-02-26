@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { 
+  ExternalLink, 
+  Copy, 
+  Check, 
+  Users, 
+  Wallet, 
+  Trophy, 
+  ArrowUpRight, 
+  History, 
+  TrendingUp 
+} from 'lucide-react';
 
 const Dashboard = ({ currentUser }) => {
   const [copied, setCopied] = useState(false);
   const [earnings, setEarnings] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [stats, setStats] = useState({
-    currentPackageAmount: 9,
-    currentPackageName: 'Package 50',
+    currentPackageAmount: 50.00,
+    currentPackageName: 'Gold Tier Package',
     accountsCount: 1,
     activePackagesCount: 9,
     teamCount: 2,
-    totalCommission: 9,
+    totalCommission: 125.50,
   });
 
-  // protect against undefined currentUser when app loads
+  // Protect against undefined currentUser
   const referralLink = currentUser
-    ? `${window.location.origin}/register?ref=${currentUser.id}`
-    : '';
+    ? `${window.location.origin}/register?ref=${currentUser.uid || currentUser.id}`
+    : `${window.location.origin}/register?ref=GOLDFX_USER`;
 
   const handleCopy = async () => {
     if (!referralLink) return;
@@ -27,188 +37,175 @@ const Dashboard = ({ currentUser }) => {
   };
 
   useEffect(() => {
-    // later you will fetch data here from backend
-    // setEarnings(...)
-    // setTransactions(...)
+    // Placeholder for future Firebase/Backend data fetching
   }, []);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500">Home / Dashboard</p>
-      </div>
-
-      {/* Referral Link */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-        <p className="text-sm font-semibold text-gray-700 mb-2">Your Link</p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            readOnly
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-gray-50"
-            value={referralLink}
-            placeholder="Referral link will appear here"
-          />
-          <button
-            onClick={handleCopy}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg whitespace-nowrap"
-          >
-            {copied ? 'Copied' : 'Copy'}
-          </button>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Page Title */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">
+            Market <span className="text-amber-500">Overview</span>
+          </h1>
+          <p className="text-gray-500 text-sm font-medium">Home / Dashboard</p>
+        </div>
+        <div className="bg-zinc-900/50 border border-amber-500/20 px-4 py-2 rounded-full flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">System Active</span>
         </div>
       </div>
 
-      {/* Top cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Current Package */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Current Package
-            </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              {stats.currentPackageName}
-            </p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              ${stats.currentPackageAmount.toFixed(2)}
-            </p>
-            <p className="text-xs text-emerald-600 mt-1">
-              ${stats.totalCommission.toFixed(2)} Total Commission Earned
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold text-xl">
-            $
-          </div>
-        </div>
-
-        {/* Accounts */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Accounts
-            </p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {stats.accountsCount}
-            </p>
-            <p className="text-xs text-emerald-600 mt-1">
-              {stats.activePackagesCount} Active Packages
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-500 font-bold text-xl">
-            <ExternalLink size={20} />
-          </div>
-        </div>
-
-        {/* Your Team */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400">
-              Your Team
-            </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Direct</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {stats.teamCount}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Members</p>
-          </div>
-          <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-xl">
-            👥
+      {/* Referral Link Section */}
+      <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 relative overflow-hidden group shadow-2xl">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+        
+        <div className="relative z-10">
+          <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">
+            Your Affiliate Network Link
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 bg-black/50 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-gray-300 font-mono truncate">
+              {referralLink}
+            </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center justify-center gap-2 px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/10 min-w-[140px]"
+            >
+              {copied ? <Check size={18} /> : <Copy size={18} />}
+              {copied ? 'COPIED' : 'COPY LINK'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Earnings Breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-blue-900">Earnings Breakdown</h3>
-        </div>
-        {earnings.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 italic">
-            No entries found
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Level
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    User Account
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Amount ($)
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Date
-                  </th>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard 
+          title="Investment Portfolio"
+          subTitle={stats.currentPackageName}
+          value={`$${stats.currentPackageAmount.toFixed(2)}`}
+          growth={`+$${stats.totalCommission.toFixed(2)} Profit`}
+          icon={<Wallet className="text-amber-500" size={24} />}
+        />
+        <StatCard 
+          title="Active Accounts"
+          value={stats.accountsCount}
+          subTitle="Live Licenses"
+          growth={`${stats.activePackagesCount} Active Nodes`}
+          icon={<TrendingUp className="text-amber-500" size={24} />}
+        />
+        <StatCard 
+          title="Team Network"
+          subTitle="Direct Referrals"
+          value={stats.teamCount}
+          growth="Total Members"
+          icon={<Users className="text-amber-500" size={24} />}
+        />
+      </div>
+
+      {/* Tables Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Earnings Table */}
+        <TableContainer title="Earnings Breakdown" icon={<Trophy size={20} className="text-amber-500" />}>
+          {earnings.length === 0 ? (
+            <EmptyState message="No earning records detected" />
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5">
+                  {['Level', 'Account', 'Amount', 'Date'].map(h => (
+                    <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5">
                 {earnings.map((row) => (
-                  <tr key={row.id} className="border-t border-gray-100">
-                    <td className="px-4 py-3">{row.level}</td>
-                    <td className="px-4 py-3">{row.userAccount}</td>
-                    <td className="px-4 py-3">${row.amount.toFixed(2)}</td>
-                    <td className="px-4 py-3">{row.date}</td>
+                  <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4 text-amber-500 font-bold">Lvl {row.level}</td>
+                    <td className="px-6 py-4 text-gray-300">{row.userAccount}</td>
+                    <td className="px-6 py-4 text-white font-mono">${row.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-gray-500 text-xs">{row.date}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-      </div>
+          )}
+        </TableContainer>
 
-      {/* Transactions */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-blue-900">Transactions</h3>
-        </div>
-        {transactions.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 italic">
-            No entries found
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    #
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Amount ($)
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Description
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                    Date
-                  </th>
+        {/* Transactions Table */}
+        <TableContainer title="Transaction History" icon={<History size={20} className="text-amber-500" />}>
+          {transactions.length === 0 ? (
+            <EmptyState message="No transaction history found" />
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5">
+                  {['Type', 'Amount', 'Status', 'Date'].map(h => (
+                    <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5">
                 {transactions.map((tx, i) => (
-                  <tr key={tx.id || i} className="border-t border-gray-100">
-                    <td className="px-4 py-3">{i + 1}</td>
-                    <td className="px-4 py-3">{tx.type}</td>
-                    <td className="px-4 py-3">${tx.amount.toFixed(2)}</td>
-                    <td className="px-4 py-3">{tx.description}</td>
-                    <td className="px-4 py-3">{tx.date}</td>
+                  <tr key={tx.id || i} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4 font-bold text-gray-300 uppercase text-[10px] tracking-tighter">{tx.type}</td>
+                    <td className="px-6 py-4 text-amber-500 font-mono">${tx.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-gray-400 text-xs">{tx.description}</td>
+                    <td className="px-6 py-4 text-gray-500 text-xs">{tx.date}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </TableContainer>
       </div>
     </div>
   );
 };
+
+/* --- Reusable Sub-Components --- */
+
+const StatCard = ({ title, subTitle, value, growth, icon }) => (
+  <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 hover:border-amber-500/30 transition-all duration-300 group shadow-xl">
+    <div className="flex justify-between items-start mb-6">
+      <div className="p-3 bg-amber-500/5 rounded-2xl group-hover:bg-amber-500/10 transition-colors">
+        {icon}
+      </div>
+      <div className="text-right">
+        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{title}</p>
+        <p className="text-[10px] text-amber-500/60 font-bold uppercase mt-1">{subTitle}</p>
+      </div>
+    </div>
+    <div className="space-y-1">
+      <h2 className="text-4xl font-black text-white tracking-tighter">{value}</h2>
+      <div className="flex items-center gap-1.5 pt-2">
+        <ArrowUpRight size={14} className="text-emerald-500" />
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">{growth}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const TableContainer = ({ title, icon, children }) => (
+  <div className="bg-zinc-950 rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+    <div className="p-6 border-b border-white/5 flex items-center gap-3">
+      {icon}
+      <h3 className="text-sm font-black text-white uppercase tracking-widest">{title}</h3>
+    </div>
+    <div className="overflow-x-auto">
+      {children}
+    </div>
+  </div>
+);
+
+const EmptyState = ({ message }) => (
+  <div className="p-20 text-center">
+    <div className="inline-flex p-4 rounded-full bg-white/5 mb-4">
+      <TrendingUp size={32} className="text-gray-700" />
+    </div>
+    <p className="text-gray-600 text-sm italic font-medium">{message}</p>
+  </div>
+);
 
 export default Dashboard;

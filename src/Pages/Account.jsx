@@ -1,7 +1,7 @@
-// src/Pages/Account.jsx
 import React, { useState, useEffect } from 'react';
 import { auth } from '../../firebase';
 import { getUserAccounts, createUserAccount } from '../api';
+import { Plus, Wallet, Shield, Globe, Hash, X, Loader2 } from 'lucide-react';
 
 const Account = () => {
   const [accounts, setAccounts] = useState([]);
@@ -13,6 +13,7 @@ const Account = () => {
 
   const [error, setError] = useState('');
   const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const user = auth.currentUser;
 
@@ -43,21 +44,22 @@ const Account = () => {
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const closeModal = () => setIsModalOpen(false);
 
   const handleCreateAccount = async e => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
     if (!accountNumber.trim()) {
       setError('Broker account number is required.');
+      setIsSubmitting(false);
       return;
     }
 
     if (!user) {
-      setError('You must be logged in to create an account.');
+      setError('Session expired. Please log in.');
+      setIsSubmitting(false);
       return;
     }
 
@@ -70,163 +72,165 @@ const Account = () => {
       setAccounts(prev => [...prev, created]);
       setIsModalOpen(false);
     } catch (err) {
-      console.error(err);
-      setError('Failed to create account. Please try again.');
+      setError('Gateway error. Please verify account details.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-black text-slate-900">
-            My Accounts
-          </h1>
+    <div className="min-h-screen bg-black text-white p-4 sm:p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
+              Trading <span className="text-amber-500">Accounts</span>
+            </h1>
+            <p className="text-gray-500 text-sm font-medium mt-1">Link and manage your external broker portfolios</p>
+          </div>
           <button
             onClick={openModal}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold shadow hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20"
           >
-            Add Account
+            <Plus size={20} strokeWidth={3} />
+            ADD ACCOUNT
           </button>
         </div>
 
-        {/* Modal */}
+        {/* Modal Overlay */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md relative">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">
-                Add New Account
-              </h2>
-
-              {error && (
-                <p className="text-red-500 text-sm mb-3 bg-red-50 p-2 rounded-lg">
-                  {error}
-                </p>
-              )}
-
-              <form onSubmit={handleCreateAccount} className="space-y-4">
-                {/* Broker */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Broker Account
-                  </label>
-                  <select
-                    value={broker}
-                    onChange={e => setBroker(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    <option value="XM">XM</option>
-                    <option value="Nord fx">Nord fx</option>
-                    <option value="Momaxa">Momaxa</option>
-                  </select>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-zinc-950 border border-white/10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6">
+                <button onClick={closeModal} className="text-gray-500 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                    <Shield className="text-amber-500" size={24} />
+                  </div>
+                  <h2 className="text-xl font-black uppercase tracking-tight">Add License</h2>
                 </div>
 
-                {/* Account type */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Account Type
-                  </label>
-                  <select
-                    value={accountType}
-                    onChange={e => setAccountType(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    <option value="Standard account">Standard account</option>
-                    <option value="cents account">cents account</option>
-                    <option value="demo account">demo account</option>
-                    <option value="copy trading account">
-                      copy trading account
-                    </option>
-                  </select>
-                </div>
+                {error && (
+                  <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold uppercase tracking-tighter">
+                    {error}
+                  </div>
+                )}
 
-                {/* Account number */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Broker Account Number
-                  </label>
-                  <input
-                    type="text"
-                    value={accountNumber}
-                    onChange={e => setAccountNumber(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    placeholder="Enter broker account number"
-                  />
-                </div>
+                <form onSubmit={handleCreateAccount} className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Preferred Broker</label>
+                    <select
+                      value={broker}
+                      onChange={e => setBroker(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                    >
+                      <option value="XM">XM Global</option>
+                      <option value="Nord fx">Nord FX</option>
+                      <option value="Momaxa">Momaxa Markets</option>
+                    </select>
+                  </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Account Category</label>
+                    <select
+                      value={accountType}
+                      onChange={e => setAccountType(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                    >
+                      <option value="Standard account">Standard Account</option>
+                      <option value="cents account">Cents Account</option>
+                      <option value="demo account">Demo Account</option>
+                      <option value="copy trading account">Copy Trading</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">MT4/MT5 Account Number</label>
+                    <input
+                      type="text"
+                      value={accountNumber}
+                      onChange={e => setAccountNumber(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold placeholder-gray-700"
+                      placeholder="e.g. 8829102"
+                    />
+                  </div>
+
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800"
+                    disabled={isSubmitting}
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2"
                   >
-                    Create
+                    {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'INITIALIZE CONNECTION'}
                   </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Accounts table */}
-        <div className="mt-8 bg-white rounded-3xl shadow border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-900">
-              Added Accounts
-            </h2>
-            <span className="text-sm text-slate-500">
+        {/* Accounts Display */}
+        <div className="bg-zinc-950 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
+          <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+            <div className="flex items-center gap-3">
+              <Wallet className="text-amber-500" size={20} />
+              <h2 className="text-sm font-black uppercase tracking-widest text-white">Linked Portfolios</h2>
+            </div>
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/20 uppercase tracking-widest">
               Total: {accounts.length}
             </span>
           </div>
 
           {loadingAccounts ? (
-            <div className="px-6 py-8 text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="py-20 flex flex-col items-center gap-4">
+              <Loader2 className="animate-spin text-amber-500" size={32} />
+              <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Synchronizing...</p>
             </div>
           ) : accounts.length === 0 ? (
-            <div className="px-6 py-8 text-center text-slate-500">
-              You have not added any accounts yet. Click{' '}
-              <span className="font-semibold">Add Account</span> to create one.
+            <div className="py-24 text-center">
+              <div className="inline-flex p-5 rounded-full bg-white/5 mb-4">
+                <Globe size={40} className="text-zinc-800" />
+              </div>
+              <p className="text-gray-500 text-sm font-medium italic max-w-xs mx-auto">
+                No active broker connections found. Connect your first account to start trading.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Broker
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Account Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Broker Account Number
-                    </th>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left border-b border-white/5">
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Index</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Broker Provider</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Type</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Account ID</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/5">
                   {accounts.map((acc, index) => (
-                    <tr key={acc.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-sm font-medium text-slate-700">
-                        {index + 1}
+                    <tr key={acc.id} className="group hover:bg-white/[0.02] transition-colors">
+                      <td className="px-8 py-5 text-sm font-mono text-gray-600">
+                        {(index + 1).toString().padStart(2, '0')}
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {acc.broker}
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          <span className="text-sm font-black text-white">{acc.broker}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {acc.accountType}
+                      <td className="px-8 py-5">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-tight">{acc.accountType}</span>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {acc.accountNumber}
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2 text-amber-500 font-mono text-sm">
+                          <Hash size={14} className="opacity-50" />
+                          {acc.accountNumber}
+                        </div>
                       </td>
                     </tr>
                   ))}

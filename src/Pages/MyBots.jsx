@@ -1,4 +1,3 @@
-// src/Pages/Bots.jsx
 import React, { useEffect, useState } from 'react';
 import { auth } from '../../firebase';
 import {
@@ -8,6 +7,18 @@ import {
   getUserByUid,
   adminListBots,
 } from '../api';
+import { 
+  Cpu, 
+  Plus, 
+  FileText, 
+  Upload, 
+  AlertCircle, 
+  CheckCircle2, 
+  ExternalLink,
+  X,
+  Loader2,
+  DollarSign
+} from 'lucide-react';
 
 const Bots = () => {
   const [accounts, setAccounts] = useState([]);
@@ -74,34 +85,32 @@ const Bots = () => {
     setIsAddModalOpen(true);
   };
 
-  const closeAddModal = () => {
-    setIsAddModalOpen(false);
-  };
+  const closeAddModal = () => setIsAddModalOpen(false);
 
   const handleCreateBot = async e => {
     e.preventDefault();
     setError('');
 
     if (!firebaseUser) {
-      setError('You must be logged in.');
+      setError('Authentication required.');
       return;
     }
 
     if (!isKycApproved) {
-      setError('Your KYC must be approved before adding bots.');
+      setError('Identity verification (KYC) must be approved first.');
       return;
     }
 
     if (!selectedAccountId) {
-      setError('Please select a broker account.');
+      setError('Please select an active broker account.');
       return;
     }
     if (!selectedBotId) {
-      setError('Please select a bot.');
+      setError('Please select a bot model.');
       return;
     }
     if (!signedAgreementFile) {
-      setError('Please upload the signed agreement.');
+      setError('Please upload the signed service agreement.');
       return;
     }
 
@@ -117,254 +126,230 @@ const Bots = () => {
       setUserBots(prev => [...prev, created]);
       setIsAddModalOpen(false);
     } catch (err) {
-      console.error(err);
-      setError('Failed to assign bot. Please try again.');
+      setError('Deployment failed. Internal server error.');
     } finally {
       setCreating(false);
     }
   };
 
-  const isGlobalLoading =
-    loadingAccounts || loadingBots || loadingUser;
+  const isGlobalLoading = loadingAccounts || loadingBots || loadingUser;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-black text-slate-900">My Bots</h1>
+    <div className="min-h-screen bg-black text-white p-4 sm:p-8">
+      <div className="max-w-5xl mx-auto">
+        
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
+              Bot <span className="text-amber-500">Fleet</span>
+            </h1>
+            <p className="text-gray-500 text-sm font-medium mt-1">Automated algorithmic trading deployments</p>
+          </div>
           <button
             onClick={openAddModal}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold shadow hover:bg-slate-800 transition-colors disabled:opacity-60"
-            disabled={
-              isGlobalLoading ||
-              accounts.length === 0 ||
-              !isKycApproved ||
-              botsCatalog.length === 0
-            }
+            disabled={isGlobalLoading || accounts.length === 0 || !isKycApproved || botsCatalog.length === 0}
+            className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-30 disabled:grayscale"
           >
-            Add Bot
+            <Plus size={20} strokeWidth={3} />
+            DEPLOY BOT
           </button>
         </div>
 
-        {!loadingUser && userRecord && !isKycApproved && (
-          <div className="mb-4 text-sm text-slate-700 bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3">
-            Your KYC is not approved yet. You can only add bots after an
-            admin approves your KYC.
+        {/* Status Notifications */}
+        <div className="space-y-4 mb-8">
+          {!loadingUser && userRecord && !isKycApproved && (
+            <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl text-amber-500">
+              <AlertCircle size={20} />
+              <p className="text-xs font-bold uppercase tracking-widest">Action Required: KYC Approval Pending</p>
+            </div>
+          )}
+          
+          {!loadingAccounts && accounts.length === 0 && (
+            <div className="flex items-center gap-3 bg-zinc-900 border border-white/5 p-4 rounded-2xl text-gray-400">
+              <AlertCircle size={20} />
+              <p className="text-xs font-bold uppercase tracking-widest">Connect a broker account to enable bot deployment</p>
+            </div>
+          )}
+        </div>
+
+        {isGlobalLoading ? (
+          <div className="py-20 flex flex-col items-center gap-4">
+            <Loader2 className="animate-spin text-amber-500" size={32} />
+            <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Synchronizing Systems...</p>
           </div>
-        )}
+        ) : (
+          <div className="bg-zinc-950 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
+            <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+              <div className="flex items-center gap-3">
+                <Cpu className="text-amber-500" size={20} />
+                <h2 className="text-sm font-black uppercase tracking-widest text-white">Active Deployments</h2>
+              </div>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">System Load: {userBots.length} Unit(s)</span>
+            </div>
 
-        {!loadingAccounts && accounts.length === 0 && (
-          <div className="mb-4 text-sm text-slate-600 bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3">
-            You don't have any broker accounts yet. Please add an account
-            first in the <span className="font-semibold">Accounts</span> page
-            before assigning bots.
-          </div>
-        )}
-
-        {!loadingBots && botsCatalog.length === 0 && (
-          <div className="mb-4 text-sm text-slate-600 bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3">
-            No bots are available yet. Please contact admin.
-          </div>
-        )}
-
-        {isGlobalLoading && (
-          <div className="py-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-          </div>
-        )}
-
-        {isAddModalOpen && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-lg relative">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">
-                Add Bot to Account
-              </h2>
-
-              {error && (
-                <p className="text-red-500 text-sm mb-3 bg-red-50 p-2 rounded-lg">
-                  {error}
+            {userBots.length === 0 ? (
+              <div className="py-24 text-center">
+                <div className="inline-flex p-5 rounded-full bg-white/5 mb-4">
+                  <Cpu size={40} className="text-zinc-800" />
+                </div>
+                <p className="text-gray-500 text-sm font-medium italic max-w-xs mx-auto">
+                  No active bot configurations found. Initialize a deployment to begin.
                 </p>
-              )}
-
-              <form onSubmit={handleCreateBot} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Broker Account
-                  </label>
-                  <select
-                    value={selectedAccountId}
-                    onChange={e =>
-                      setSelectedAccountId(Number(e.target.value))
-                    }
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    {accounts.map(acc => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.broker} – {acc.accountType} –{' '}
-                        {acc.accountNumber}
-                      </option>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b border-white/5">
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Index</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Deployment Target</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Bot Model</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">License Fee</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Legal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {userBots.map((b, index) => (
+                      <tr key={b.id} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="px-8 py-5 text-sm font-mono text-gray-600">{(index + 1).toString().padStart(2, '0')}</td>
+                        <td className="px-8 py-5">
+                          <p className="text-sm font-black text-white">{b.broker}</p>
+                          <p className="text-[10px] text-amber-500/70 font-mono tracking-tighter">ID: {b.accountNumber}</p>
+                        </td>
+                        <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
+                        <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
+                        <td className="px-8 py-5">
+                          <a href="#" className="flex items-center gap-1 text-[10px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-widest">
+                            <FileText size={12} className="text-amber-500" />
+                            View Terms
+                          </a>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot
-                  </label>
-                  <select
-                    value={selectedBotId}
-                    onChange={e => setSelectedBotId(Number(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    {botsCatalog.map(bot => (
-                      <option key={bot.id} value={bot.id}>
-                        {bot.name} – ${bot.price}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Signed Agreement
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsAgreementOpen(true)}
-                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-50"
-                    >
-                      View Agreement
-                    </button>
-                    <input
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={e =>
-                        setSignedAgreementFile(
-                          e.target.files?.[0] || null
-                        )
-                      }
-                      className="block w-full text-sm text-slate-600"
-                    />
-                    {signedAgreementFile && (
-                      <p className="text-xs text-slate-500">
-                        Selected: {signedAgreementFile.name}
-                      </p>
-                    )}
+        {/* Add Bot Modal */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-zinc-950 border border-white/10 rounded-[2.5rem] shadow-2xl w-full max-w-xl relative overflow-hidden">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <Cpu className="text-amber-500" size={24} />
+                    </div>
+                    <h2 className="text-xl font-black uppercase tracking-tight">System Deployment</h2>
                   </div>
+                  <button onClick={closeAddModal} className="text-gray-500 hover:text-white transition-colors"><X size={24} /></button>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeAddModal}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
+                {error && (
+                  <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold uppercase tracking-tighter">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateBot} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Target Account</label>
+                      <select
+                        value={selectedAccountId}
+                        onChange={e => setSelectedAccountId(Number(e.target.value))}
+                        className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                      >
+                        {accounts.map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.broker} - {acc.accountNumber}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bot Algorithm</label>
+                      <select
+                        value={selectedBotId}
+                        onChange={e => setSelectedBotId(Number(e.target.value))}
+                        className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                      >
+                        {botsCatalog.map(bot => (
+                          <option key={bot.id} value={bot.id}>{bot.name} (${bot.price})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="bg-black border border-white/10 p-6 rounded-3xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                      <div className="flex items-center gap-2">
+                        <FileText size={18} className="text-amber-500" />
+                        <span className="text-xs font-black uppercase tracking-widest">Service Agreement</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsAgreementOpen(true)}
+                        className="text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase underline"
+                      >
+                        Read Terms
+                      </button>
+                    </div>
+                    
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={e => setSignedAgreementFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                        <Upload size={18} className="text-gray-500" />
+                        <span className="text-xs font-bold text-gray-500">
+                          {signedAgreementFile ? signedAgreementFile.name : "Upload Signed PDF"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={creating}
-                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 disabled:opacity-60"
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2"
                   >
-                    {creating ? 'Creating...' : 'Create'}
+                    {creating ? <Loader2 className="animate-spin" size={20} /> : 'INITIALIZE DEPLOYMENT'}
                   </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {isAgreementOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-xl max-h-[80vh] overflow-y-auto relative">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">
-                Bot Service Agreement
-              </h2>
-              <p className="text-sm text-slate-700 mb-4">
-                [Sample agreement text] By using this trading bot, you
-                acknowledge that trading involves risk and you are solely
-                responsible for any gains or losses. This bot does not
-                guarantee profit. You agree not to hold the provider liable
-                for any financial outcome resulting from using this bot.
-              </p>
-              <p className="text-sm text-slate-700 mb-4">
-                You must read and agree to these terms before activating a
-                bot on your trading account.
-              </p>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsAgreementOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
-                >
-                  Close
-                </button>
+                </form>
               </div>
             </div>
           </div>
         )}
 
-        <div className="mt-8 bg-white rounded-3xl shadow border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-900">My Bots</h2>
-            <span className="text-sm text-slate-500">
-              Total: {userBots.length}
-            </span>
+        {/* Agreement Overlay */}
+        {isAgreementOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in zoom-in duration-200">
+            <div className="bg-zinc-950 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+              <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                <Shield className="text-amber-500" size={24} />
+                <h2 className="text-xl font-black uppercase tracking-tight">Legal Disclosures</h2>
+              </div>
+              <div className="space-y-4 text-gray-400 text-sm leading-relaxed">
+                <p><span className="text-amber-500 font-bold uppercase">Risk Warning:</span> Trading foreign exchange on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you.</p>
+                <p>By activating this automated system, you acknowledge that Gold FX provides trading software "as-is" without guarantee of performance. All financial decisions and outcomes remain the sole responsibility of the account holder.</p>
+                <p>The user agrees to indemnify Gold FX against any losses incurred through algorithmic operations, market volatility, or technical latency.</p>
+              </div>
+              <button
+                onClick={() => setIsAgreementOpen(false)}
+                className="mt-8 w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white font-black rounded-2xl border border-white/5 transition-colors"
+              >
+                I UNDERSTAND
+              </button>
+            </div>
           </div>
-
-          {userBots.length === 0 ? (
-            <div className="px-6 py-8 text-center text-slate-500">
-              You have not added any bots yet. Click{' '}
-              <span className="font-semibold">Add Bot</span> to create one.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Broker Account
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Bot
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Signed Agreement
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {userBots.map((b, index) => (
-                    <tr key={b.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-sm font-medium text-slate-700">
-                        {index + 1}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {b.broker} – {b.accountNumber}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {b.botName}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        ${b.price}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-blue-600 underline">
-                        {b.signedAgreementUrl}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
