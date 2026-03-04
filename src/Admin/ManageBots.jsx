@@ -6,6 +6,7 @@ import {
   adminUpdateBot,
   adminDeleteBot,
 } from '../api';
+import { Plus, Edit3, Trash2, Cpu, DollarSign, Clock, X, AlertCircle } from 'lucide-react';
 
 const ManageBots = () => {
   const [bots, setBots] = useState([]);
@@ -34,7 +35,7 @@ const ManageBots = () => {
       setBots(data);
     } catch (err) {
       console.error(err);
-      setError('Failed to load bots.');
+      setError('System failure: Unable to synchronize bot list.');
     } finally {
       setLoading(false);
     }
@@ -46,12 +47,7 @@ const ManageBots = () => {
 
   const openAddModal = () => {
     setError('');
-    setForm({
-      name: '',
-      price: '',
-      cost: '',
-      subscriptionFee: '',
-    });
+    setForm({ name: '', price: '', cost: '', subscriptionFee: '' });
     setIsAddModalOpen(true);
   };
 
@@ -86,22 +82,10 @@ const ManageBots = () => {
   };
 
   const validateForm = () => {
-    if (!form.name.trim()) {
-      setError('Bot Name is required.');
-      return false;
-    }
-    if (!form.price || isNaN(Number(form.price))) {
-      setError('Bot Price must be a number.');
-      return false;
-    }
-    if (!form.cost || isNaN(Number(form.cost))) {
-      setError('Bot Cost must be a number.');
-      return false;
-    }
-    if (!form.subscriptionFee || isNaN(Number(form.subscriptionFee))) {
-      setError('Subscription Fee must be a number.');
-      return false;
-    }
+    if (!form.name.trim()) { setError('Bot identifier is required.'); return false; }
+    if (!form.price || isNaN(Number(form.price))) { setError('Invalid price format.'); return false; }
+    if (!form.cost || isNaN(Number(form.cost))) { setError('Invalid cost format.'); return false; }
+    if (!form.subscriptionFee || isNaN(Number(form.subscriptionFee))) { setError('Invalid fee format.'); return false; }
     return true;
   };
 
@@ -109,7 +93,6 @@ const ManageBots = () => {
     e.preventDefault();
     setError('');
     if (!validateForm()) return;
-
     try {
       setSaving(true);
       const created = await adminCreateBot({
@@ -118,11 +101,10 @@ const ManageBots = () => {
         cost: Number(form.cost),
         subscriptionFee: Number(form.subscriptionFee),
       });
-      setBots(prev => [created, ...prev]); // newest first
+      setBots(prev => [created, ...prev]);
       closeAllModals();
     } catch (err) {
-      console.error(err);
-      setError('Failed to create bot.');
+      setError('Failed to initialize new bot unit.');
     } finally {
       setSaving(false);
     }
@@ -133,7 +115,6 @@ const ManageBots = () => {
     if (!currentBot) return;
     setError('');
     if (!validateForm()) return;
-
     try {
       setSaving(true);
       const updated = await adminUpdateBot(currentBot.id, {
@@ -142,12 +123,10 @@ const ManageBots = () => {
         cost: Number(form.cost),
         subscriptionFee: Number(form.subscriptionFee),
       });
-
       setBots(prev => prev.map(b => (b.id === updated.id ? updated : b)));
       closeAllModals();
     } catch (err) {
-      console.error(err);
-      setError('Failed to update bot.');
+      setError('Failed to reconfigure bot unit.');
     } finally {
       setSaving(false);
     }
@@ -162,118 +141,93 @@ const ManageBots = () => {
       setBots(prev => prev.filter(b => b.id !== currentBot.id));
       closeAllModals();
     } catch (err) {
-      console.error(err);
-      setError('Failed to delete bot.');
+      setError('Decommissioning failed.');
     } finally {
       setDeleting(false);
     }
   };
 
-  const formatDateTime = iso => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleString();
-  };
+  const formatDateTime = iso => iso ? new Date(iso).toLocaleDateString() : 'N/A';
 
   return (
-    <div className="p-1 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
-      <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-8 border border-slate-200/50 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-[#050505] text-zinc-400 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl font-black text-slate-900">
-              Manage Bots
+            <div className="flex items-center gap-2 mb-2 text-amber-500">
+              <Cpu size={14} />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em]">Hardware Configuration</span>
+            </div>
+            <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
+              Bot <span className="text-amber-500">Management</span>
             </h1>
-            <p className="text-slate-600">
-              Create and manage trading bots and pricing.
-            </p>
           </div>
           <button
             onClick={openAddModal}
-            className="px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow hover:bg-slate-800"
+            className="group flex items-center gap-2 px-6 py-3 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-500 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
           >
-            Add Bot
+            <Plus size={16} className="transition-transform group-hover:rotate-90" />
+            Initialize Bot
           </button>
-        </div>
+        </header>
 
         {error && (
-          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
+          <div className="mb-6 flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-500 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-wider">
+            <AlertCircle size={18} />
             {error}
-          </p>
+          </div>
         )}
 
-        {/* Table */}
-        {loading ? (
-          <div className="min-h-[200px] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
-        ) : bots.length === 0 ? (
-          <div className="min-h-[200px] flex items-center justify-center text-slate-500">
-            No bots created yet. Click &quot;Add Bot&quot; to create one.
-          </div>
-        ) : (
-          <div className="bg-white/80 rounded-3xl border border-slate-200/50 overflow-hidden shadow">
+        {/* Desktop Table View */}
+        <div className="bg-zinc-950 border border-white/5 rounded-[2.5rem] overflow-hidden">
+          {loading ? (
+            <div className="h-64 flex flex-col items-center justify-center gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500/20 border-t-amber-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Accessing Core...</span>
+            </div>
+          ) : bots.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-zinc-600 font-black uppercase tracking-widest text-sm">
+              No active bot units detected.
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Bot Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Initial Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Cost
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Subscription Fee
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Created At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Action
-                    </th>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-zinc-900/30 border-b border-white/5">
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Unit ID</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Bot Designation</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Market Price</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Oper. Cost</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Sub Fee</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Commands</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/5">
                   {bots.map(bot => (
-                    <tr key={bot.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-sm font-medium text-slate-700">
-                        {bot.id}
+                    <tr key={bot.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-8 py-6 font-mono text-[10px] text-zinc-600">#{bot.id.toString().slice(-6)}</td>
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-black text-white uppercase tracking-tight italic group-hover:text-amber-500 transition-colors">
+                          {bot.name}
+                        </span>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {bot.name}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        ${bot.price}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        ${bot.cost}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        ${bot.subscriptionFee}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {formatDateTime(bot.createdAt)}
-                      </td>
-                      <td className="px-6 py-3 text-sm">
-                        <div className="flex gap-2">
-                          <button
+                      <td className="px-8 py-6 font-mono text-sm text-zinc-300">${bot.price}</td>
+                      <td className="px-8 py-6 font-mono text-sm text-zinc-300">${bot.cost}</td>
+                      <td className="px-8 py-6 font-mono text-sm text-amber-500/80">${bot.subscriptionFee}</td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button 
                             onClick={() => openEditModal(bot)}
-                            className="px-3 py-1 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                            className="p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
                           >
-                            Edit
+                            <Edit3 size={16} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => openDeleteModal(bot)}
-                            className="px-3 py-1 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
+                            className="p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
                           >
-                            Delete
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -282,219 +236,73 @@ const ManageBots = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
-        {/* Add Bot Modal */}
-        {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">
-                Add Bot
+      {/* MODAL OVERLAYS - Re-themed for High-Security UI */}
+      {(isAddModalOpen || isEditModalOpen) && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-8 border-b border-white/5 bg-zinc-900/20 flex justify-between items-center">
+              <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                {isAddModalOpen ? 'Initialize Unit' : 'Reconfigure Unit'}
               </h2>
-              {error && (
-                <p className="text-red-500 text-sm mb-3 bg-red-50 p-2 rounded-lg">
-                  {error}
-                </p>
-              )}
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Name
-                  </label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Price
-                  </label>
-                  <input
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    value={form.price}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Cost
-                  </label>
-                  <input
-                    name="cost"
-                    type="number"
-                    step="0.01"
-                    value={form.cost}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Subscription Fee
-                  </label>
-                  <input
-                    name="subscriptionFee"
-                    type="number"
-                    step="0.01"
-                    value={form.subscriptionFee}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeAllModals}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {saving ? 'Saving...' : 'Create'}
-                  </button>
-                </div>
-              </form>
+              <button onClick={closeAllModals} className="text-zinc-500 hover:text-white transition-colors"><X /></button>
             </div>
-          </div>
-        )}
-
-        {/* Edit Bot Modal */}
-        {isEditModalOpen && currentBot && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">
-                Edit Bot
-              </h2>
-              {error && (
-                <p className="text-red-500 text-sm mb-3 bg-red-50 p-2 rounded-lg">
-                  {error}
-                </p>
-              )}
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Name
-                  </label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
+            <form onSubmit={isAddModalOpen ? handleCreate : handleUpdate} className="p-8 space-y-6">
+              <div className="space-y-4">
+                <FormInput label="Designation Name" name="name" value={form.name} onChange={handleChange} placeholder="Unit Alpha-7" />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormInput label="Deployment Price" name="price" type="number" value={form.price} onChange={handleChange} placeholder="0.00" />
+                  <FormInput label="Base Oper. Cost" name="cost" type="number" value={form.cost} onChange={handleChange} placeholder="0.00" />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Price
-                  </label>
-                  <input
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    value={form.price}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Bot Cost
-                  </label>
-                  <input
-                    name="cost"
-                    type="number"
-                    step="0.01"
-                    value={form.cost}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Subscription Fee
-                  </label>
-                  <input
-                    name="subscriptionFee"
-                    type="number"
-                    step="0.01"
-                    value={form.subscriptionFee}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeAllModals}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {saving ? 'Saving...' : 'Update'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Delete confirmation */}
-        {isDeleteModalOpen && currentBot && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-sm">
-              <h2 className="text-lg font-bold text-slate-900 mb-3">
-                Delete Bot
-              </h2>
-              <p className="text-sm text-slate-700 mb-4">
-                Are you sure you want to delete the bot{' '}
-                <span className="font-semibold">{currentBot.name}</span>?
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeAllModals}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
-                >
-                  {deleting ? 'Deleting...' : 'Delete'}
+                <FormInput label="Monthly Subscription Fee" name="subscriptionFee" type="number" value={form.subscriptionFee} onChange={handleChange} placeholder="0.00" />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={closeAllModals} className="flex-1 px-6 py-4 rounded-2xl border border-white/5 text-zinc-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all">Abort</button>
+                <button type="submit" disabled={saving} className="flex-1 px-6 py-4 rounded-2xl bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest hover:bg-amber-400 transition-all disabled:opacity-50">
+                  {saving ? 'Processing...' : (isAddModalOpen ? 'Commit Unit' : 'Save Changes')}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {isDeleteModalOpen && currentBot && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in zoom-in-95 duration-200">
+          <div className="bg-[#0A0A0A] border border-red-500/20 rounded-[2rem] w-full max-w-sm p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.1)]">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={28} />
+            </div>
+            <h2 className="text-xl font-black text-white uppercase italic mb-2 tracking-tighter">Decommission Unit?</h2>
+            <p className="text-zinc-500 text-xs font-medium leading-relaxed mb-8">
+              This will permanently purge <span className="text-white font-bold">{currentBot.name}</span> from the active fleet.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={closeAllModals} className="flex-1 px-4 py-3 rounded-xl border border-white/5 text-zinc-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all">Cancel</button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-red-500 transition-all">
+                {deleting ? 'Purging...' : 'Confirm Purge'}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
+
+/* Internal Form Helper */
+const FormInput = ({ label, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest ml-1">{label}</label>
+    <input
+      {...props}
+      className="w-full px-4 py-3 bg-zinc-900 border border-white/5 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-zinc-700 font-mono"
+    />
+  </div>
+);
 
 export default ManageBots;

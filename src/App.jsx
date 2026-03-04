@@ -16,6 +16,7 @@ import Dashboard from './Pages/Dashboard';
 import MyBots from './Pages/MyBots';
 import Account from './Pages/Account';
 import Profile from './Pages/Profile';
+import Courses from './Pages/Courses';
 
 import AdminLogin from './Admin/AdminLogin';
 import AdminNav from './Components/AdminNav';
@@ -25,6 +26,8 @@ import KycRequests from './Admin/KycRequests';
 import ManageBots from './Admin/ManageBots';
 import BotRequests from './Admin/BotRequests';
 import AdminCareers from './Admin/AdminCareers';
+import AdminCourses from './Admin/AdminCourses';
+import ApplyCourses from './Admin/ApplyCourse';
 
 import { getUserByUid } from './api';
 
@@ -157,6 +160,7 @@ function App() {
           <Route path="bots" element={<MyBots />} />
           <Route path="accounts" element={<Account />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="courses" element={<Courses />} />
         </Route>
 
         {/* Admin */}
@@ -175,6 +179,8 @@ function App() {
           <Route path="bots" element={<ManageBots />} />
           <Route path="bot-requests" element={<BotRequests />} />
           <Route path="careers" element={<AdminCareers />} />
+          <Route path="courses" element={<AdminCourses />} />
+          <Route path="apply-courses" element={<ApplyCourses />} />
         </Route>
 
         {/* Fallback */}

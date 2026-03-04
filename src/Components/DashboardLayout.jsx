@@ -57,6 +57,7 @@ const DashboardLayout = () => {
     { name: 'My Profile', icon: User, path: '/dashboard/profile' },
     { name: 'My Accounts', icon: Wallet, path: '/dashboard/accounts' },
     { name: 'My Bots', icon: Bot, path: '/dashboard/bots' },
+    { name: 'My Courses', icon: FileText, path: '/dashboard/courses' },
     {
       name: 'Plans and Billing',
       icon: FileText,

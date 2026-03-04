@@ -6,11 +6,11 @@ import {
   approveBotRequest,
   rejectBotRequest,
 } from '../api';
+import { ShieldAlert, FileText, CheckCircle, XCircle, User, Activity, Clock, Search } from 'lucide-react';
 
 const BotRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -22,8 +22,7 @@ const BotRequests = () => {
       const data = await getBotRequests();
       setRequests(data);
     } catch (err) {
-      console.error(err);
-      setError('Failed to load bot requests.');
+      setError('Permission Denied: Unable to fetch incoming requests.');
     } finally {
       setLoading(false);
     }
@@ -40,8 +39,7 @@ const BotRequests = () => {
       setSelected(data);
       setModalOpen(true);
     } catch (err) {
-      console.error(err);
-      setError('Failed to load bot request.');
+      setError('System Error: Could not retrieve agreement manifest.');
     }
   };
 
@@ -58,8 +56,7 @@ const BotRequests = () => {
       closeModal();
       await loadRequests();
     } catch (err) {
-      console.error(err);
-      setError('Failed to approve bot request.');
+      setError('Deployment Failed: Approval logic error.');
     } finally {
       setActionLoading(false);
     }
@@ -73,169 +70,108 @@ const BotRequests = () => {
       closeModal();
       await loadRequests();
     } catch (err) {
-      console.error(err);
-      setError('Failed to reject bot request.');
+      setError('Rejection Failed: Security override error.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const statusBadgeClass = status => {
-    switch ((status || 'pending').toLowerCase()) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-    }
+  const statusStyle = status => {
+    const s = (status || 'pending').toLowerCase();
+    if (s === 'approved') return 'text-emerald-500 border-emerald-500/20 bg-emerald-500/5';
+    if (s === 'rejected') return 'text-red-500 border-red-500/20 bg-red-500/5';
+    return 'text-amber-500 border-amber-500/20 bg-amber-500/5';
   };
 
-  const formatDate = iso => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleDateString();
-  };
-
-  const formatDateTime = iso => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleString();
-  };
-
+  const formatDate = iso => iso ? new Date(iso).toLocaleDateString() : 'N/A';
+  const formatDateTime = iso => iso ? new Date(iso).toLocaleString() : 'N/A';
   const getExpiryDate = iso => {
-    if (!iso) return '';
+    if (!iso) return 'N/A';
     const d = new Date(iso);
     d.setFullYear(d.getFullYear() + 1);
     return d.toLocaleDateString();
   };
 
   return (
-    <div className="p-1 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
-      <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-8 border border-slate-200/50 shadow-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900">
-              Bot Requests
-            </h1>
-            <p className="text-slate-600">
-              Review pending bot assignments and approve or reject them.
-            </p>
+    <div className="min-h-screen bg-[#050505] text-zinc-400 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <header className="mb-12">
+          <div className="flex items-center gap-2 mb-2 text-amber-500">
+            <ShieldAlert size={14} />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Security Clearance Queue</span>
           </div>
-        </div>
+          <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
+            Deployment <span className="text-amber-500">Requests</span>
+          </h1>
+          <p className="mt-2 text-zinc-500 text-sm max-w-2xl font-medium">
+            Verify signed legal agreements and authorize bot unit assignments to verified broker accounts.
+          </p>
+        </header>
 
         {error && (
-          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
+          <div className="mb-6 flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+            <ShieldAlert size={16} />
             {error}
-          </p>
+          </div>
         )}
 
-        {loading ? (
-          <div className="min-h-[200px] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="min-h-[200px] flex items-center justify-center text-slate-500">
-            No bot requests.
-          </div>
-        ) : (
-          <div className="bg-white/80 rounded-3xl border border-slate-200/50 overflow-hidden shadow">
+        {/* Requests Table */}
+        <div className="bg-zinc-950 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+          {loading ? (
+            <div className="h-64 flex flex-col items-center justify-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-500/20 border-t-amber-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Scanning Requests...</span>
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-zinc-600 font-black uppercase tracking-widest text-sm italic">
+              Queue clear. No pending authorizations.
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Account
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Bot
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Requested Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Expiry Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                      Action
-                    </th>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-zinc-900/30 border-b border-white/5">
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Operator/Account</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Bot Designation</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Timeline</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Verification</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/5">
                   {requests.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-sm text-slate-800">
+                    <tr key={r.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-8 py-6">
                         <div className="flex flex-col">
-                          <span className="font-semibold">
-                            {r.userName || 'Unknown'}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {r.userEmail}
-                          </span>
+                          <span className="text-sm font-black text-white uppercase italic tracking-tight">{r.userName || 'ANONYMOUS'}</span>
+                          <span className="text-[10px] font-mono text-zinc-600">{r.broker} // {r.accountNumber}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {r.broker} – {r.accountNumber}
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-300 uppercase">{r.botName}</span>
+                          <span className="text-[10px] font-mono text-amber-500/60">${r.price}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {r.botName} (${r.price})
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col text-[10px] font-mono">
+                          <span className="text-zinc-500">REQ: {formatDate(r.createdAt)}</span>
+                          <span className="text-zinc-700">EXP: {getExpiryDate(r.createdAt)}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {formatDate(r.createdAt)}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-800">
-                        {getExpiryDate(r.createdAt)}
-                      </td>
-                      <td className="px-6 py-3 text-sm">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${statusBadgeClass(
-                            r.status
-                          )}`}
-                        >
+                      <td className="px-8 py-6">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusStyle(r.status)}`}>
                           {r.status || 'pending'}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-sm">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex justify-end gap-2">
                           <button
                             onClick={() => openView(r.id)}
-                            className="px-3 py-1 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5"
                           >
-                            View Agreement
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setSelected(r);
-                              await handleApprove();
-                            }}
-                            disabled={
-                              actionLoading ||
-                              (r.status &&
-                                r.status.toLowerCase() === 'approved')
-                            }
-                            className="px-3 py-1 rounded-xl bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-60"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setSelected(r);
-                              await handleReject();
-                            }}
-                            disabled={
-                              actionLoading ||
-                              (r.status &&
-                                r.status.toLowerCase() === 'rejected')
-                            }
-                            className="px-3 py-1 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-60"
-                          >
-                            Reject
+                            <FileText size={14} /> Review
                           </button>
                         </div>
                       </td>
@@ -244,121 +180,89 @@ const BotRequests = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
-        {/* View modal */}
-        {modalOpen && selected && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                Bot Request Details
-              </h2>
+      {/* DETAIL MODAL */}
+      {modalOpen && selected && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-zinc-900/20">
+              <div>
+                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Manifest Verification</h2>
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.2em] mt-1">Request ID: {selected.id}</p>
+              </div>
+              <button onClick={closeModal} className="p-2 hover:bg-white/5 rounded-full transition-colors"><XCircle size={24}/></button>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                    User
-                  </p>
-                  <p className="text-sm font-medium text-slate-900">
-                    {selected.userName || 'Unknown'}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {selected.userEmail}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                    Account
-                  </p>
-                  <p className="text-sm text-slate-900">
-                    {selected.broker} – {selected.accountNumber}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                    Bot
-                  </p>
-                  <p className="text-sm text-slate-900">
-                    {selected.botName} (${selected.price})
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                    Requested / Expiry
-                  </p>
-                  <p className="text-sm text-slate-900">
-                    {formatDateTime(selected.createdAt)} (exp:{' '}
-                    {getExpiryDate(selected.createdAt)})
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                    Status
-                  </p>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${statusBadgeClass(
-                      selected.status
-                    )}`}
-                  >
-                    {selected.status || 'pending'}
-                  </span>
-                </div>
+            <div className="p-8 overflow-y-auto flex-1 space-y-8">
+              {/* Grid Data */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <DetailBox icon={<User size={14}/>} label="Operator Identity" value={selected.userName} subValue={selected.userEmail} />
+                <DetailBox icon={<Activity size={14}/>} label="Broker Destination" value={selected.broker} subValue={selected.accountNumber} />
+                <DetailBox icon={<Clock size={14}/>} label="Temporal Window" value={`REQ: ${formatDateTime(selected.createdAt)}`} subValue={`EXP: ${getExpiryDate(selected.createdAt)}`} />
               </div>
 
-              <div className="mb-6">
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                  Signed Agreement
-                </p>
-                {/* treat URL as image; if in real app it might be file, adjust accordingly */}
-                <img
-                  src={selected.signedAgreementUrl}
-                  alt="Signed Agreement"
-                  className="w-full max-h-96 object-contain rounded-xl border"
-                />
-              </div>
-
-              <div className="flex justify-between items-center mt-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50"
-                >
-                  Close
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleReject}
-                    disabled={
-                      actionLoading ||
-                      (selected.status &&
-                        selected.status.toLowerCase() === 'rejected')
-                    }
-                    className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
-                  >
-                    {actionLoading ? 'Processing...' : 'Reject'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    disabled={
-                      actionLoading ||
-                      (selected.status &&
-                        selected.status.toLowerCase() === 'approved')
-                    }
-                    className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
-                  >
-                    {actionLoading ? 'Processing...' : 'Approve'}
-                  </button>
+              {/* Document Preview */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Signed Agreement Manifest</label>
+                <div className="relative aspect-[4/3] md:aspect-[16/9] bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 group">
+                  <img
+                    src={selected.signedAgreementUrl}
+                    alt="Agreement"
+                    className="w-full h-full object-contain p-4"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-4 py-2 rounded-full">Secure Document Viewer</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Modal Actions */}
+            <div className="p-8 bg-zinc-900/30 border-t border-white/5 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <button
+                onClick={closeModal}
+                className="w-full md:w-auto px-8 py-3 text-zinc-500 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+              >
+                Exit Console
+              </button>
+              <div className="flex gap-4 w-full md:w-auto">
+                <button
+                  onClick={handleReject}
+                  disabled={actionLoading || selected.status?.toLowerCase() === 'rejected'}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-red-600/10 border border-red-600/20 text-red-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all disabled:opacity-30"
+                >
+                  <XCircle size={16} /> {actionLoading ? 'Executing...' : 'Deny Access'}
+                </button>
+                <button
+                  onClick={handleApprove}
+                  disabled={actionLoading || selected.status?.toLowerCase() === 'approved'}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-400 transition-all disabled:opacity-30"
+                >
+                  <CheckCircle size={16} /> {actionLoading ? 'Executing...' : 'Authorize Unit'}
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
+
+/* Internal UI Component */
+const DetailBox = ({ icon, label, value, subValue }) => (
+  <div className="p-5 bg-zinc-900/50 border border-white/5 rounded-2xl">
+    <div className="flex items-center gap-2 text-zinc-600 mb-2">
+      {icon}
+      <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+    </div>
+    <p className="text-white font-black uppercase italic tracking-tight">{value || 'N/A'}</p>
+    <p className="text-[10px] font-mono text-zinc-600 truncate mt-1">{subValue}</p>
+  </div>
+);
 
 export default BotRequests;

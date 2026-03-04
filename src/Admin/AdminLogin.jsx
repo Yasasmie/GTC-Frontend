@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -13,7 +13,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -22,6 +22,7 @@ const AdminLogin = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Logic to determine if user has admin privileges
       const isAdmin =
         user.email &&
         (user.email.endsWith('@admin.com') || user.email.toLowerCase().includes('admin'));
@@ -29,119 +30,125 @@ const AdminLogin = () => {
       if (isAdmin) {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        setError('Access Denied: Administrative privileges required.');
+        // Optional: sign them out if they aren't admin but logged in
+        // await auth.signOut();
       }
     } catch (err) {
-      setError('Invalid email or password');
+      setError('Invalid administrative credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-12">
-          <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-            <svg
-              className="w-12 h-12 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+    <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Aesthetic Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-600/5 blur-[120px] rounded-full" />
+
+      <div className="w-full max-w-md z-10">
+        {/* Logo & Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex p-4 rounded-3xl bg-zinc-900 border border-white/10 shadow-2xl mb-6 group transition-all duration-500 hover:border-amber-500/50">
+            <ShieldCheck className="w-12 h-12 text-amber-500 transition-transform duration-500 group-hover:scale-110" strokeWidth={1.5} />
           </div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-gray-900 to-slate-800 bg-clip-text text-transparent mb-4">
-            Admin Portal
+          <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">
+            Admin <span className="text-amber-500">Console</span>
           </h1>
-          <p className="text-xl text-slate-600 font-medium">
-            Sign in to manage your platform
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-[0.3em] mt-2">
+            Secure Infrastructure Access
           </p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-10 border border-slate-200/50 shadow-2xl">
+        {/* Login Card */}
+        <div className="bg-zinc-950/50 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-10 border border-white/5 shadow-3xl relative">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm">
+            <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-[11px] font-black uppercase tracking-widest flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Email Address
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                Admin Identifier
               </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-amber-500 transition-colors w-5 h-5" />
                 <input
                   type="email"
                   required
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all duration-200 text-lg placeholder-slate-500"
-                  placeholder="admin@yourcompany.com"
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-black border border-white/10 rounded-2xl focus:border-amber-500/50 focus:outline-none transition-all duration-300 text-white placeholder-zinc-700 font-bold text-sm"
+                  placeholder="name@admin.com"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Password
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                Security Key
               </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-amber-500 transition-colors w-5 h-5" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-100 transition-all duration-200 text-lg placeholder-slate-500"
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-12 py-4 bg-black border border-white/10 rounded-2xl focus:border-amber-500/50 focus:outline-none transition-all duration-300 text-white placeholder-zinc-700 font-bold text-sm"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl hover:shadow-2xl hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 transition-all duration-200 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full group relative overflow-hidden bg-amber-500 disabled:bg-zinc-800 text-black font-black py-4 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-3"
             >
               {loading ? (
                 <>
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Authenticating...
                 </>
               ) : (
-                'Sign In as Admin'
+                <>
+                  Authorize Entry
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-600">
-              Back to{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-orange-600 hover:text-orange-700 transition-colors"
-              >
-                User Login
-              </Link>
-            </p>
+          {/* Footer Link */}
+          <div className="mt-10 text-center border-t border-white/5 pt-6">
+            <Link
+              to="/login"
+              className="text-[10px] font-black text-zinc-500 hover:text-amber-500 transition-colors uppercase tracking-[0.2em] flex items-center justify-center gap-2"
+            >
+              Exit to Terminal login
+            </Link>
           </div>
         </div>
+        
+        {/* Bottom Security Note */}
+        <p className="text-center mt-8 text-[9px] text-zinc-700 font-bold uppercase tracking-[0.4em]">
+          Encrypted Session &bull; Managed Access Only
+        </p>
       </div>
     </div>
   );

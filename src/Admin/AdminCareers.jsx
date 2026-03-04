@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   User, Mail, Phone, Calendar, Briefcase, 
-  Clock, MapPin, ClipboardList, X 
-} from 'lucide-react'; // Note: Ensure lucide-react is installed
+  Clock, MapPin, ClipboardList, X, FileSearch, ArrowUpRight, CheckCircle2 
+} from 'lucide-react';
 
 const AdminCareers = () => {
   const [applications, setApplications] = useState([]);
@@ -19,12 +19,11 @@ const AdminCareers = () => {
         const res = await fetch('http://localhost:5000/api/admin/careers');
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || 'Failed to load applications');
+          throw new Error(err.message || 'Data stream interrupted');
         }
         const data = await res.json();
         setApplications(data);
       } catch (err) {
-        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -45,98 +44,89 @@ const AdminCareers = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-500 font-medium">Fetching applications...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-red-100">
-          <p className="text-red-500 font-semibold text-lg">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="min-h-[400px] flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-amber-500/20 border-t-amber-500"></div>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Scanning Talent Database...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 px-4 sm:px-6 lg:px-8 py-10">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+    <div className="min-h-screen bg-[#050505] text-zinc-400 pb-20">
+      <div className="max-w-[1600px] mx-auto">
+        {/* Header */}
+        <header className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Career Applications</h1>
-            <p className="text-slate-500 mt-1">Manage and review all incoming job applications.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <FileSearch size={14} className="text-amber-500" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Recruitment Portal // Intelligence</span>
+            </div>
+            <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
+              Career <span className="text-amber-500">Applications</span>
+            </h1>
           </div>
-          <div className="mt-4 md:mt-0 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
-            <span className="text-sm font-medium text-slate-600">Total Applications: </span>
-            <span className="text-blue-600 font-bold">{applications.length}</span>
+          
+          <div className="bg-zinc-900/50 border border-white/5 px-6 py-4 rounded-2xl flex items-center gap-4">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Active Candidates</span>
+            <span className="text-2xl font-black text-amber-500 font-mono italic">{applications.length.toString().padStart(2, '0')}</span>
           </div>
         </header>
 
         {applications.length === 0 ? (
-          <div className="bg-white rounded-2xl p-20 text-center shadow-sm border border-slate-200">
-            <ClipboardList className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-            <p className="text-slate-500 text-lg">No applications submitted yet.</p>
+          <div className="bg-zinc-950 border border-dashed border-white/10 rounded-[2.5rem] p-32 text-center">
+            <ClipboardList className="mx-auto h-16 w-16 text-zinc-800 mb-6" />
+            <p className="text-zinc-500 font-black uppercase tracking-widest text-sm">No new intelligence submitted.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-zinc-950 border border-white/5 rounded-[2.5rem] overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Role & Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Experience</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Availability</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+              <table className="min-w-full text-left">
+                <thead>
+                  <tr className="bg-zinc-900/30 border-b border-white/5">
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Candidate Info</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Designation</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Experience</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Deployment</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Dossier</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/5">
                   {applications.map((app) => (
-                    <tr 
-                      key={app.id || app._id} 
-                      className="hover:bg-blue-50/30 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            {app.name.charAt(0)}
+                    <tr key={app.id || app._id} className="hover:bg-white/[0.02] transition-all group">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center text-amber-500 font-black text-xs">
+                            {app.name.charAt(0).toUpperCase()}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-semibold text-slate-900">{app.name}</div>
-                            <div className="text-xs text-slate-500">{app.email}</div>
+                          <div>
+                            <div className="text-sm font-black text-white uppercase tracking-tight">{app.name}</div>
+                            <div className="text-[10px] font-mono text-zinc-500 lowercase">{app.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-slate-900 font-medium">{app.preferredRole}</div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                          {app.employmentType}
+                      <td className="px-8 py-6">
+                        <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider">{app.preferredRole}</div>
+                        <span className="text-[9px] font-black text-amber-500/70 uppercase tracking-tighter">
+                          [{app.employmentType}]
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-slate-700">{app.yearsExperience || '0'} Years</div>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-black text-white italic font-mono">{app.yearsExperience || '0'}</span>
+                          <span className="text-[10px] font-black text-zinc-600 uppercase">Years</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {app.availableFrom || 'Immediate'}
+                      <td className="px-8 py-6">
+                        <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                          {app.availableFrom || 'Immediate'}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-8 py-6 text-right">
                         <button 
                           onClick={() => openDetails(app)}
-                          className="text-blue-600 hover:text-blue-800 font-semibold text-sm transition"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-amber-500 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest border border-transparent hover:border-amber-500/30"
                         >
-                          View Profile
+                          Review <ArrowUpRight size={14} />
                         </button>
                       </td>
                     </tr>
@@ -148,84 +138,97 @@ const AdminCareers = () => {
         )}
       </div>
 
-      {/* Modern Detail Modal */}
+      {/* Dossier Modal */}
       {showModal && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
           <div 
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-[#0A0A0A] border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-8 py-6 flex justify-between items-center z-10">
-              <h2 className="text-2xl font-bold text-slate-900">Application Profile</h2>
-              <button onClick={closeDetails} className="p-2 hover:bg-slate-100 rounded-full transition">
-                <X className="w-6 h-6 text-slate-400" />
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-zinc-900/20">
+              <div>
+                <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em]">Candidate Dossier</span>
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mt-1">Profile Analysis</h2>
+              </div>
+              <button onClick={closeDetails} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-zinc-500 hover:text-white">
+                <X size={24} />
               </button>
             </div>
 
-            <div className="px-8 py-8 space-y-8">
-              {/* Personal Info Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <DetailItem icon={<User />} label="Full Name" value={selectedApp.name} />
-                <DetailItem icon={<Mail />} label="Email Address" value={selectedApp.email} />
-                <DetailItem icon={<Phone />} label="Mobile Phone" value={selectedApp.phone} />
-                <DetailItem icon={<MapPin />} label="NIC / ID" value={selectedApp.nic} />
-                <DetailItem icon={<Briefcase />} label="Currently Working" value={selectedApp.currentlyWorking === 'yes' ? 'Yes' : 'No'} />
-                <DetailItem icon={<Calendar />} label="Available From" value={selectedApp.availableFrom} />
+            <div className="p-10 overflow-y-auto space-y-10 custom-scrollbar">
+              {/* Primary Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                <DetailItem icon={<User />} label="Legal Name" value={selectedApp.name} />
+                <DetailItem icon={<Mail />} label="Comm channel" value={selectedApp.email} />
+                <DetailItem icon={<Phone />} label="Relay Phone" value={selectedApp.phone} />
+                <DetailItem icon={<MapPin />} label="ID / NIC Tag" value={selectedApp.nic} />
+                <DetailItem icon={<Briefcase />} label="Operational Status" value={selectedApp.currentlyWorking === 'yes' ? 'Actively Engaged' : 'Free Agent'} />
+                <DetailItem icon={<Calendar />} label="Earliest Deployment" value={selectedApp.availableFrom} />
               </div>
 
-              {/* Work Details Section */}
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Role Preferences</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Strategy/Role Box */}
+              <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-8 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <CheckCircle2 size={80} className="text-amber-500" />
+                </div>
+                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em] mb-6">Strategic Alignment</h3>
+                <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <p className="text-xs text-slate-500">Desired Position</p>
-                    <p className="text-lg font-semibold text-blue-600">{selectedApp.preferredRole}</p>
+                    <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Target Position</p>
+                    <p className="text-xl font-black text-amber-500 uppercase italic tracking-tighter">{selectedApp.preferredRole}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Employment Type</p>
-                    <p className="text-lg font-semibold text-slate-800">{selectedApp.employmentType}</p>
+                    <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Engagement Model</p>
+                    <p className="text-xl font-black text-white uppercase italic tracking-tighter">{selectedApp.employmentType}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Additional Notes */}
+              {/* Intel / Notes */}
               <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Information</h3>
-                <div className="bg-white border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed whitespace-pre-line">
-                  {selectedApp.notes || "No additional notes provided by the candidate."}
+                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em] mb-4">Candidate Intelligence</h3>
+                <div className="bg-zinc-900/20 border border-white/5 rounded-2xl p-6 text-sm text-zinc-400 leading-relaxed font-medium italic">
+                  "{selectedApp.notes || "No supplemental intel provided by candidate."}"
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-between items-center text-xs text-slate-400">
-                <div className="flex items-center">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Submitted on: {selectedApp.createdAt ? new Date(selectedApp.createdAt).toLocaleString() : '-'}
+              {/* Timestamp Footer */}
+              <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                <div className="flex items-center gap-2 text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+                  <Clock size={12} />
+                  Logged: {selectedApp.createdAt ? new Date(selectedApp.createdAt).toLocaleString() : 'N/A'}
                 </div>
                 <button 
                   onClick={closeDetails}
-                  className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200"
+                  className="px-10 py-4 bg-amber-500 text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)]"
                 >
-                  Close Profile
+                  Terminate Review
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+      `}</style>
     </div>
   );
 };
 
-/* Helper Component for Modal Rows */
+/* Helper Component for Dossier Rows */
 const DetailItem = ({ icon, label, value }) => (
-  <div className="flex items-start space-x-3">
-    <div className="mt-1 text-blue-500">
+  <div className="flex items-start gap-4">
+    <div className="mt-1 text-zinc-700">
       {React.cloneElement(icon, { size: 18 })}
     </div>
     <div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-slate-900 font-medium break-words">{value || '-'}</p>
+      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-white font-bold text-sm tracking-tight uppercase">{value || 'N/A'}</p>
     </div>
   </div>
 );

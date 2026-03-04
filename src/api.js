@@ -2,8 +2,7 @@
 
 // In Vite, environment variables are accessed via import.meta.env
 // Define VITE_API_BASE in your .env file if you want to override the default.
-const API_BASE =
-  import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 // Helper to handle responses consistently
 const handleResponse = async (res, errorMessage) => {
@@ -14,7 +13,8 @@ const handleResponse = async (res, errorMessage) => {
   return res.json();
 };
 
-// User endpoints
+// --- USER ENDPOINTS ---
+
 export const createUserRecord = async ({ uid, email, name }) => {
   const res = await fetch(`${API_BASE}/api/users`, {
     method: 'POST',
@@ -43,7 +43,8 @@ export const submitKyc = async (uid, kycData) => {
   return handleResponse(res, 'Failed to submit KYC');
 };
 
-// Admin user helpers
+// --- ADMIN USER HELPERS ---
+
 export const adminListUsers = async () => {
   const res = await fetch(`${API_BASE}/api/admin/users`);
   return handleResponse(res, 'Failed to load users');
@@ -63,7 +64,8 @@ export const adminDeleteUser = async (id) => {
   return handleResponse(res, 'Failed to delete user');
 };
 
-// User accounts
+// --- USER ACCOUNTS ---
+
 export const getUserAccounts = async (uid) => {
   const res = await fetch(`${API_BASE}/api/users/${uid}/accounts`);
   return handleResponse(res, 'Failed to load accounts');
@@ -78,7 +80,8 @@ export const createUserAccount = async (uid, data) => {
   return handleResponse(res, 'Failed to create account');
 };
 
-// Bots (user)
+// --- BOTS (USER) ---
+
 export const getBotCatalog = async () => {
   const res = await fetch(`${API_BASE}/api/bots/catalog`);
   return handleResponse(res, 'Failed to load bots');
@@ -98,7 +101,8 @@ export const createUserBot = async (uid, data) => {
   return handleResponse(res, 'Failed to create user bot');
 };
 
-// KYC requests (admin)
+// --- KYC REQUESTS (ADMIN) ---
+
 export const getKycRequests = async () => {
   const res = await fetch(`${API_BASE}/api/admin/kyc-requests`);
   return handleResponse(res, 'Failed to load KYC requests');
@@ -123,7 +127,8 @@ export const rejectKycRequest = async (id) => {
   return handleResponse(res, 'Failed to reject KYC');
 };
 
-// Bots (admin)
+// --- BOTS (ADMIN) ---
+
 export const adminListBots = async () => {
   const res = await fetch(`${API_BASE}/api/admin/bots`);
   return handleResponse(res, 'Failed to load bots');
@@ -154,7 +159,8 @@ export const adminDeleteBot = async (id) => {
   return handleResponse(res, 'Failed to delete bot');
 };
 
-// Bot requests (admin)
+// --- BOT REQUESTS (ADMIN) ---
+
 export const getBotRequests = async () => {
   const res = await fetch(`${API_BASE}/api/admin/bot-requests`);
   return handleResponse(res, 'Failed to load bot requests');
@@ -177,4 +183,67 @@ export const rejectBotRequest = async (id) => {
     method: 'PUT',
   });
   return handleResponse(res, 'Failed to reject bot request');
+};
+
+// --- COURSES (USER & ADMIN) ---
+
+export const getCourses = async () => {
+  const res = await fetch(`${API_BASE}/api/courses`);
+  return handleResponse(res, 'Failed to load course library');
+};
+
+export const createCourse = async (data) => {
+  // accept youtubeLinks as array, or youtubeLink string
+  const payload = { ...data };
+  if (payload.youtubeLinks && !Array.isArray(payload.youtubeLinks)) {
+    payload.youtubeLinks = [payload.youtubeLinks];
+  } else if (!payload.youtubeLinks && payload.youtubeLink) {
+    payload.youtubeLinks = [payload.youtubeLink];
+  }
+  const res = await fetch(`${API_BASE}/api/admin/courses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res, 'Failed to initialize course deployment');
+};
+
+export const updateCourse = async (id, data) => {
+  const res = await fetch(`${API_BASE}/api/admin/courses/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res, 'Failed to update course');
+};
+
+export const deleteCourse = async (id) => {
+  const res = await fetch(`${API_BASE}/api/admin/courses/${id}`, {
+    method: 'DELETE',
+  });
+  return handleResponse(res, 'Failed to terminate course data');
+};
+
+// Course applications
+export const submitCourseApplication = async (data) => {
+  const res = await fetch(`${API_BASE}/api/courses/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res, 'Failed to submit course application');
+};
+
+export const getCourseApplications = async () => {
+  const res = await fetch(`${API_BASE}/api/admin/course-applications`);
+  return handleResponse(res, 'Failed to load course applications');
+};
+
+export const updateCourseApplicationStatus = async (id, status) => {
+  const res = await fetch(`${API_BASE}/api/admin/course-applications/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  return handleResponse(res, 'Failed to update application status');
 };
