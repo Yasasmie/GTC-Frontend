@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { auth } from '../../firebase';
-import { getUserProfile } from '../api';
 import {
   updatePassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from 'firebase/auth';
 import { User, ShieldCheck, Key, MapPin, Mail, Loader2, ShoppingCart, Cpu, DollarSign } from 'lucide-react';
+import { getUserProfile } from '../api';
 
 const Profile = () => {
-  const firebaseUser = auth.currentUser;
+  const { currentUser: firebaseUser, userProfile } = useOutletContext();
 
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -22,24 +23,14 @@ const Profile = () => {
   const [changePwSuccess, setChangePwSuccess] = useState('');
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!firebaseUser) {
-        setLoadingProfile(false);
-        setErrorProfile('Not logged in.');
-        return;
-      }
-      try {
-        const data = await getUserProfile(firebaseUser.uid);
-        setProfile(data);
-      } catch (err) {
-        setErrorProfile('Failed to load profile.');
-      } finally {
-        setLoadingProfile(false);
-      }
-    };
-
-    loadProfile();
-  }, [firebaseUser]);
+    if (userProfile) {
+      setProfile(userProfile);
+      setLoadingProfile(false);
+    } else if (!firebaseUser) {
+      setLoadingProfile(false);
+      setErrorProfile('Not logged in.');
+    }
+  }, [userProfile, firebaseUser]);
 
   const handleChangePassword = async e => {
     e.preventDefault();
@@ -80,7 +71,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
             My <span className="text-amber-500">Profile</span>
@@ -99,25 +90,23 @@ const Profile = () => {
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            
+
             {/* Account Information Card */}
             <ProfileCard title="Account Information" icon={<User className="text-amber-500" size={20} />}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <InfoBox label="Full Name" value={profile?.name || firebaseUser?.displayName || 'N/A'} />
-                <InfoBox label="Linked Email" value={profile?.email || firebaseUser?.email || 'N/A'} icon={<Mail size={14}/>} />
+                <InfoBox label="Linked Email" value={profile?.email || firebaseUser?.email || 'N/A'} icon={<Mail size={14} />} />
                 <div className="space-y-2">
                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Account Status</p>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                    profile?.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                  }`}>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${profile?.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                    }`}>
                     {profile?.status || 'Pending Verification'}
                   </span>
                 </div>
                 <div className="space-y-2">
                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">KYC Verification</p>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                    profile?.kycCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
-                  }`}>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${profile?.kycCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                    }`}>
                     {profile?.kycCompleted ? 'Verified' : 'Unverified'}
                   </span>
                 </div>
@@ -131,7 +120,7 @@ const Profile = () => {
                   <InfoBox label="Full Name" value={kyc.fullName} />
                   <InfoBox label="ID Number" value={kyc.idNumber} />
                   <div className="md:col-span-2">
-                    <InfoBox label="Home Address" value={kyc.address} icon={<MapPin size={14}/>} />
+                    <InfoBox label="Home Address" value={kyc.address} icon={<MapPin size={14} />} />
                   </div>
                   <InfoBox label="City" value={kyc.city} />
                   <InfoBox label="Country" value={kyc.country} />
@@ -143,21 +132,31 @@ const Profile = () => {
               )}
             </ProfileCard>
 
-            {/* Sales Statistics Card */}
-            <ProfileCard title="Sales Stats" icon={<ShoppingCart className="text-amber-500" size={20} />}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <InfoBox 
-                  label="Bots Sold" 
-                  value={profile?.totalSells?.toString() || '0'} 
-                  icon={<Cpu size={14}/>} 
-                />
-                <InfoBox 
-                  label="Total Earned" 
-                  value={`$${(profile?.totalRevenue || 0).toLocaleString()}`} 
-                  icon={<DollarSign size={14}/>} 
-                />
-              </div>
-            </ProfileCard>
+            {/* Sales Statistics Card - Hide for referred users */}
+            {!profile?.referredBy && (
+              <ProfileCard title="Sales Stats" icon={<ShoppingCart className="text-amber-500" size={20} />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                       Bots Sold
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-500/50"><Cpu size={14} /></span>
+                      <p className="text-base font-bold text-gray-200 tracking-tight">{profile?.totalSells?.toString() || '0'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                       Total Earned
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-500/50"><DollarSign size={14} /></span>
+                      <p className="text-base font-bold text-gray-200 tracking-tight">${(profile?.totalRevenue || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              </ProfileCard>
+            )}
 
             {/* Security Card */}
             <ProfileCard title="Security & Password" icon={<Key className="text-amber-500" size={20} />}>

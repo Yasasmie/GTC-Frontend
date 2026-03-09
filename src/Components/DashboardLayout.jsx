@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 import { auth } from '../../firebase'; // wait, it's ../../firebase for DashboardLayout? Yes, firebase is at src/../firebase.js
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../api';
+import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, getUserProfile } from '../api';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -28,10 +29,16 @@ const DashboardLayout = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, currentUser => {
+    const unsubscribe = onAuthStateChanged(auth, async currentUser => {
       if (currentUser) {
         setUser(currentUser);
         fetchNotifications(currentUser.uid);
+        try {
+          const profile = await getUserProfile(currentUser.uid);
+          setUserProfile(profile);
+        } catch (err) {
+          console.error("Failed to load profile", err);
+        }
       } else {
         navigate('/login');
       }
@@ -87,6 +94,8 @@ const DashboardLayout = () => {
     );
   }
 
+  const isReferredUser = !!userProfile?.referredBy;
+
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'My Profile', icon: User, path: '/dashboard/profile' },
@@ -94,12 +103,12 @@ const DashboardLayout = () => {
     { name: 'My Bots', icon: Bot, path: '/dashboard/bots' },
     { name: 'Bot Shop', icon: ShoppingBag, path: '/dashboard/marketplace' },
     { name: 'Courses', icon: FileText, path: '/dashboard/courses' },
-    {
+    ...(!isReferredUser ? [{
       name: 'Plans and Billing',
       icon: FileText,
       path: '/dashboard/billing',
       hasSub: true,
-    },
+    }] : []),
   ];
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Trader';
@@ -109,9 +118,8 @@ const DashboardLayout = () => {
     <div className="min-h-screen bg-black text-white flex">
       {/* Sidebar */}
       <aside
-        className={`bg-zinc-950 border-r border-white/5 transition-all duration-300 z-20 ${
-          isSidebarOpen ? 'w-64' : 'w-20'
-        }`}
+        className={`bg-zinc-950 border-r border-white/5 transition-all duration-300 z-20 ${isSidebarOpen ? 'w-64' : 'w-20'
+          }`}
       >
         <div className="p-6 flex items-center gap-3">
           <img
@@ -133,11 +141,10 @@ const DashboardLayout = () => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive 
-                    ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/10' 
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                    ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/10'
                     : 'text-gray-400 hover:bg-white/5 hover:text-amber-500'
-                }`}
+                  }`}
               >
                 <item.icon size={20} className={isActive ? 'text-black' : 'group-hover:text-amber-500'} />
                 {isSidebarOpen && (
@@ -178,15 +185,15 @@ const DashboardLayout = () => {
 
           <div className="flex items-center gap-4 md:gap-6 relative">
             <button
-               onClick={() => setShowNotifications(!showNotifications)}
-               className="text-gray-400 hover:text-amber-500 relative transition-colors"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="text-gray-400 hover:text-amber-500 relative transition-colors"
             >
               <Bell size={20} />
               {notifications.some(n => !n.read) && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-zinc-950" />
               )}
             </button>
-            
+
             {showNotifications && (
               <div className="absolute top-12 right-0 md:right-32 w-80 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[400px]">
                 <div className="p-3 border-b border-white/10 flex justify-between items-center bg-zinc-950">
@@ -200,8 +207,8 @@ const DashboardLayout = () => {
                     <div className="p-4 text-center text-zinc-500 text-xs">No notifications yet</div>
                   ) : (
                     notifications.map(n => (
-                      <div 
-                        key={n.id} 
+                      <div
+                        key={n.id}
                         className={`p-3 rounded-lg text-sm transition-colors cursor-pointer flex justify-between gap-3 ${n.read ? 'bg-black/40 text-zinc-400' : 'bg-black/80 text-white border border-white/5'}`}
                         onClick={() => {
                           handleMarkAsRead(n.id);
@@ -222,7 +229,7 @@ const DashboardLayout = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center gap-3 pl-4 md:pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-black text-white truncate max-w-[120px] uppercase tracking-tight">
@@ -246,7 +253,7 @@ const DashboardLayout = () => {
         {/* Dynamic Page Content */}
         <main className="p-4 md:p-8 overflow-y-auto flex-1 bg-black">
           <div className="max-w-7xl mx-auto">
-             <Outlet context={{ currentUser: user }} />
+            <Outlet context={{ currentUser: user, userProfile }} />
           </div>
         </main>
       </div>

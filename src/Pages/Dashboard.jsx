@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ExternalLink, 
-  Copy, 
-  Check, 
-  Users, 
-  Wallet, 
-  Trophy, 
-  ArrowUpRight, 
-  History, 
+import {
+  ExternalLink,
+  Copy,
+  Check,
+  Users,
+  Wallet,
+  Trophy,
+  ArrowUpRight,
+  History,
   TrendingUp,
-  Cpu
+  Cpu,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { getUserProfile } from '../api';
 
 const Dashboard = () => {
-  const { currentUser } = useOutletContext();
+  const { currentUser, userProfile } = useOutletContext();
   const [copied, setCopied] = useState(false);
   const [earnings, setEarnings] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -23,10 +25,12 @@ const Dashboard = () => {
     currentPackageAmount: 50.00,
     currentPackageName: 'Gold Tier Package',
     accountsCount: 1,
-    activePackagesCount: 9,
-    teamCount: 2,
-    totalCommission: 125.50,
+    activePackagesCount: 0,
+    totalSells: 0,
+    totalRevenue: 0,
   });
+
+  const isReferredUser = !!userProfile?.referredBy;
 
   // Protect against undefined currentUser
   const referralLink = currentUser
@@ -41,22 +45,16 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!currentUser) return;
-      try {
-        const profile = await getUserProfile(currentUser.uid);
-        setStats(prev => ({
-          ...prev,
-          totalSells: profile.totalSells || 0,
-          totalRevenue: profile.totalRevenue || 0,
-          referredBy: profile.referredBy || null,
-        }));
-      } catch (err) {
-        console.error('Failed to load dashboard stats', err);
-      }
-    };
-    fetchData();
-  }, [currentUser]);
+    if (userProfile) {
+      setStats(prev => ({
+        ...prev,
+        totalSells: userProfile.totalSells || 0,
+        totalRevenue: userProfile.totalRevenue || 0,
+        referredBy: userProfile.referredBy || null,
+        activePackagesCount: userProfile.activeBotsCount || 0,
+      }));
+    }
+  }, [userProfile]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -64,7 +62,7 @@ const Dashboard = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight uppercase">
-            Market <span className="text-amber-500">Overview</span>
+            {isReferredUser ? 'My' : 'Market'} <span className="text-amber-500">{isReferredUser ? 'Profile' : 'Overview'}</span>
           </h1>
           <p className="text-gray-500 text-sm font-medium">Home / Dashboard</p>
         </div>
@@ -78,7 +76,7 @@ const Dashboard = () => {
       {!stats.referredBy && (
         <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 relative overflow-hidden group shadow-2xl">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-          
+
           <div className="relative z-10">
             <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">
               Your Affiliate Network Link
@@ -101,23 +99,44 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Marketplace Earnings"
-          subTitle="Total Revenue"
-          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
-          growth="Total Profit from Sales"
-          icon={<Wallet className="text-amber-500" size={24} />}
-        />
-        <StatCard 
-          title="Successful Sales"
-          value={stats.totalSells || 0}
-          subTitle="Bot Distribution"
-          growth="Marketplace Reach"
-          icon={<TrendingUp className="text-amber-500" size={24} />}
-        />
+        {!isReferredUser ? (
+          <>
+            <StatCard 
+              title="Marketplace Earnings"
+              subTitle="Total Revenue"
+              value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+              growth="Total Profit from Sales"
+              icon={<Wallet className="text-amber-500" size={24} />}
+            />
+            <StatCard 
+              title="Successful Sales"
+              value={stats.totalSells || 0}
+              subTitle="Bot Distribution"
+              growth="Marketplace Reach"
+              icon={<TrendingUp className="text-amber-500" size={24} />}
+            />
+          </>
+        ) : (
+          <>
+            <StatCard 
+              title="Financial Protection"
+              subTitle="Identity Verification"
+              value={userProfile?.kycStatus?.toUpperCase() || 'PENDING'}
+              growth="Security Level: High"
+              icon={<ShieldCheck className="text-amber-500" size={24} />}
+            />
+            <StatCard 
+              title="Learning Progress"
+              subTitle="Course Access"
+              value="Unlimited"
+              growth="Skill Development"
+              icon={<FileText className="text-amber-500" size={24} />}
+            />
+          </>
+        )}
         <StatCard 
           title="Active Licenses"
-          subTitle="Deployed Nodes"
+          subTitle="Owned Assets"
           value={stats.activePackagesCount}
           growth="System Stability: 100%"
           icon={<Cpu className="text-amber-500" size={24} />}
@@ -126,37 +145,39 @@ const Dashboard = () => {
 
       {/* Tables Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Earnings Table */}
-        <TableContainer title="Earnings Breakdown" icon={<Trophy size={20} className="text-amber-500" />}>
-          {earnings.length === 0 ? (
-            <EmptyState message="No earning records detected" />
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/5">
-                  {['Level', 'Account', 'Amount', 'Date'].map(h => (
-                    <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {earnings.map((row) => (
-                  <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 text-amber-500 font-bold">Lvl {row.level}</td>
-                    <td className="px-6 py-4 text-gray-300">{row.userAccount}</td>
-                    <td className="px-6 py-4 text-white font-mono">${row.amount.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-gray-500 text-xs">{row.date}</td>
+        {/* Only show earnings table for resellers */}
+        {!isReferredUser && (
+          <TableContainer title="Earnings Breakdown" icon={<Trophy size={20} className="text-amber-500" />}>
+            {earnings.length === 0 ? (
+              <EmptyState message="No earning records detected" />
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    {['Level', 'Account', 'Amount', 'Date'].map(h => (
+                      <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </TableContainer>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {earnings.map((row) => (
+                    <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4 text-amber-500 font-bold">Lvl {row.level}</td>
+                      <td className="px-6 py-4 text-gray-300">{row.userAccount}</td>
+                      <td className="px-6 py-4 text-white font-mono">${row.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-gray-500 text-xs">{row.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </TableContainer>
+        )}
 
-        {/* Transactions Table */}
-        <TableContainer title="Transaction History" icon={<History size={20} className="text-amber-500" />}>
+        {/* Transactions Table - Always relevant for everyone */}
+        <TableContainer title="Account Activity" icon={<History size={20} className="text-amber-500" />}>
           {transactions.length === 0 ? (
-            <EmptyState message="No transaction history found" />
+            <EmptyState message="No activity history found" />
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>

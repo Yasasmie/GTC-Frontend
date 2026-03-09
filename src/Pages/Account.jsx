@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { auth } from '../../firebase';
 import { getUserAccounts, createUserAccount } from '../api';
 import { Plus, Wallet, Shield, Globe, Hash, X, Loader2 } from 'lucide-react';
 
 const Account = () => {
+  const { currentUser: user, userProfile } = useOutletContext();
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -15,7 +18,6 @@ const Account = () => {
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const user = auth.currentUser;
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -107,7 +109,7 @@ const Account = () => {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-amber-500/10 rounded-lg">

@@ -307,7 +307,7 @@ export const cancelResellUserBot = async (uid, botId) => {
 };
 
 export const getResaleMarketplace = async (buyerUid) => {
-  const url = buyerUid 
+  const url = buyerUid
     ? `${API_BASE}/api/bots/resale?buyerUid=${buyerUid}`
     : `${API_BASE}/api/bots/resale`;
   const res = await fetch(url);

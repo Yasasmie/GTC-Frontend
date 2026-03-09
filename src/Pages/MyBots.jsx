@@ -12,13 +12,13 @@ import {
   getSaleHistory,
 } from '../api';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { 
-  Cpu, 
-  Plus, 
-  FileText, 
-  Upload, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  Cpu,
+  Plus,
+  FileText,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
   ExternalLink,
   X,
   Loader2,
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 
 const Bots = () => {
-  const { currentUser: firebaseUser } = useOutletContext();
+  const { currentUser: firebaseUser, userProfile } = useOutletContext();
   const [accounts, setAccounts] = useState([]);
   const [botsCatalog, setBotsCatalog] = useState([]);
   const [userBots, setUserBots] = useState([]);
@@ -54,19 +54,21 @@ const Bots = () => {
 
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
-  
+
   // Resale states
   const [isResaleModalOpen, setIsResaleModalOpen] = useState(false);
   const [resaleBot, setResaleBot] = useState(null);
   const [resalePrice, setResalePrice] = useState('');
   const [reselling, setReselling] = useState(false);
-  
+
   // Seller Panel states
   const [activeTab, setActiveTab] = useState('my-bots'); // 'my-bots', 'requests', 'history'
   const [requests, setRequests] = useState([]);
   const [saleHistory, setSaleHistory] = useState([]);
   const [loadingSellerData, setLoadingSellerData] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
+
+  const isReferredUser = !!userProfile?.referredBy;
 
   useEffect(() => {
     const loadData = async () => {
@@ -87,9 +89,9 @@ const Bots = () => {
         setBotsCatalog(catalog);
         setUserBots(myBots);
         setUserRecord(userRec);
-        
-        // Load seller data if user has listed bots
-        if (myBots.some(b => b.isForResale)) {
+
+        // Load seller data if user has listed bots and is NOT a restricted buyer
+        if (!isReferredUser && myBots.some(b => b.isForResale)) {
           loadSellerPanelData();
         }
       } catch (err) {
@@ -101,10 +103,10 @@ const Bots = () => {
       }
     };
     loadData();
-  }, [firebaseUser]);
+  }, [firebaseUser, isReferredUser]);
 
   const loadSellerPanelData = async () => {
-    if (!firebaseUser) return;
+    if (!firebaseUser || isReferredUser) return;
     setLoadingSellerData(true);
     try {
       const [reqs, history] = await Promise.all([
@@ -182,7 +184,7 @@ const Bots = () => {
   const handleResell = async (e) => {
     e.preventDefault();
     if (!resaleBot || !resalePrice) return;
-    
+
     setReselling(true);
     try {
       await resellUserBot(firebaseUser.uid, resaleBot.id, Number(resalePrice));
@@ -222,7 +224,7 @@ const Bots = () => {
   };
 
   const isGlobalLoading = loadingAccounts || loadingBots || loadingUser;
-  
+
   const openResaleModal = (bot) => {
     setResaleBot(bot);
     setResalePrice(bot.price || '');
@@ -232,23 +234,28 @@ const Bots = () => {
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-8">
       <div className="max-w-5xl mx-auto">
-        
+
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
               My <span className="text-amber-500">Bots</span>
             </h1>
-            <p className="text-gray-500 text-sm font-medium mt-1">Manage and sell your trading bots</p>
+            <p className="text-gray-500 text-sm font-medium mt-1">
+              {isReferredUser ? 'View and monitor your purchased bots' : 'Manage your bot collection and view sales requests'}
+            </p>
           </div>
-          <button
-            onClick={openAddModal}
-            disabled={isGlobalLoading || accounts.length === 0 || !isKycApproved || botsCatalog.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-30 disabled:grayscale"
-          >
-            <Plus size={20} strokeWidth={3} />
-            ADD NEW BOT
-          </button>
+          
+          {!isReferredUser && (
+            <button
+              onClick={openAddModal}
+              disabled={isGlobalLoading || accounts.length === 0 || !isKycApproved || botsCatalog.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-30 disabled:grayscale"
+            >
+              <Plus size={20} strokeWidth={3} />
+              ADD NEW BOT
+            </button>
+          )}
         </div>
 
         {/* Status Notifications */}
@@ -259,8 +266,8 @@ const Bots = () => {
               <p className="text-xs font-bold uppercase tracking-widest">Action Required: KYC Approval Pending</p>
             </div>
           )}
-          
-          {!loadingAccounts && accounts.length === 0 && (
+
+          {!loadingAccounts && accounts.length === 0 && !isReferredUser && (
             <div className="flex items-center gap-3 bg-zinc-900 border border-white/5 p-4 rounded-2xl text-gray-400">
               <AlertCircle size={20} />
               <p className="text-xs font-bold uppercase tracking-widest">Connect a broker account to enable bot deployment</p>
@@ -270,29 +277,34 @@ const Bots = () => {
 
         {/* Tabs Navigation */}
         <div className="flex items-center gap-1 bg-zinc-950 border border-white/5 p-1 rounded-2xl mb-8 w-fit">
-          <button 
+          <button
             onClick={() => setActiveTab('my-bots')}
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'my-bots' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
           >
             My Bots
           </button>
-          <button 
-            onClick={() => { setActiveTab('requests'); loadSellerPanelData(); }}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'requests' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
-          >
-            Sales Requests
-            {requests.filter(r => r.status === 'pending').length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] border-2 border-black">
-                {requests.filter(r => r.status === 'pending').length}
-              </span>
-            )}
-          </button>
-          <button 
-            onClick={() => { setActiveTab('history'); loadSellerPanelData(); }}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
-          >
-            Sales History
-          </button>
+          
+          {!isReferredUser && (
+            <>
+              <button 
+                onClick={() => { setActiveTab('requests'); loadSellerPanelData(); }}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'requests' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Sales Requests
+                {requests.filter(r => r.status === 'pending').length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] border-2 border-black">
+                    {requests.filter(r => r.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+              <button 
+                onClick={() => { setActiveTab('history'); loadSellerPanelData(); }}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Sales History
+              </button>
+            </>
+          )}
         </div>
 
         {isGlobalLoading ? (
@@ -318,7 +330,7 @@ const Bots = () => {
                       <Cpu size={40} className="text-zinc-800" />
                     </div>
                     <p className="text-gray-500 text-sm font-medium italic max-w-xs mx-auto">
-                      No active bot configurations found. Initialize a deployment to begin.
+                      {isReferredUser ? 'You haven\'t purchased any bots yet. Visit the Bot Shop to get started.' : 'No active bot configurations found. Initialize a deployment to begin.'}
                     </p>
                   </div>
                 ) : (
@@ -330,7 +342,7 @@ const Bots = () => {
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Account</th>
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Bot Model</th>
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Price Paid</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Selling Status</th>
+                          {!isReferredUser && <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Selling Status</th>}
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
                         </tr>
                       </thead>
@@ -344,23 +356,25 @@ const Bots = () => {
                             </td>
                             <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
                             <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
+                            {!isReferredUser && (
+                              <td className="px-8 py-5">
+                                {b.isForResale ? (
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-green-500 uppercase">Listed at ${b.resalePrice}</span>
+                                    <button 
+                                      onClick={() => handleCancelResale(b.id)}
+                                      className="text-[9px] text-red-500 font-bold hover:underline w-fit"
+                                    >
+                                      Cancel Listing
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] font-black text-gray-600 uppercase">Private</span>
+                                )}
+                              </td>
+                            )}
                             <td className="px-8 py-5">
-                              {b.isForResale ? (
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] font-black text-green-500 uppercase">Listed at ${b.resalePrice}</span>
-                                  <button 
-                                    onClick={() => handleCancelResale(b.id)}
-                                    className="text-[9px] text-red-500 font-bold hover:underline w-fit"
-                                  >
-                                    Cancel Listing
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-[10px] font-black text-gray-600 uppercase">Private</span>
-                              )}
-                            </td>
-                            <td className="px-8 py-5">
-                              {b.status === 'approved' && !b.isForResale && !b.boughtFrom && (
+                              {!isReferredUser && b.status === 'approved' && !b.isForResale && !b.boughtFrom && (
                                 <button 
                                   onClick={() => openResaleModal(b)}
                                   className="flex items-center gap-1 text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest"
@@ -369,13 +383,13 @@ const Bots = () => {
                                   Sell Bot
                                 </button>
                               )}
-                              {b.boughtFrom && (
+                              {(b.boughtFrom || isReferredUser) && (
                                 <span className="text-[10px] font-black text-gray-700 uppercase italic">Resale Restricted</span>
                               )}
                               {b.status !== 'approved' && (
                                 <span className="text-[10px] font-black text-gray-600 uppercase italic">Waiting for Approval</span>
                               )}
-                              {b.isForResale && (
+                              {!isReferredUser && b.isForResale && (
                                 <span className="text-[10px] font-black text-green-500/50 uppercase italic">On Market</span>
                               )}
                             </td>
@@ -398,9 +412,9 @@ const Bots = () => {
                 </div>
 
                 {loadingSellerData ? (
-                   <div className="py-24 flex flex-col items-center gap-4">
-                     <Loader2 className="animate-spin text-amber-500" size={32} />
-                   </div>
+                  <div className="py-24 flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-amber-500" size={32} />
+                  </div>
                 ) : requests.length === 0 ? (
                   <div className="py-24 text-center">
                     <p className="text-gray-500 text-sm font-medium uppercase tracking-widest">No requests found</p>
@@ -425,7 +439,7 @@ const Bots = () => {
                             <td className="px-8 py-5 font-bold text-gray-400">{req.botName}</td>
                             <td className="px-8 py-5 font-mono text-amber-500">${req.price}</td>
                             <td className="px-8 py-5">
-                              <button 
+                              <button
                                 onClick={() => setSelectedSlip(req.paymentSlip)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all text-[10px] font-black uppercase"
                               >
@@ -433,24 +447,23 @@ const Bots = () => {
                               </button>
                             </td>
                             <td className="px-8 py-5">
-                              <span className={`px-2 py-0.5 rounded-full font-black uppercase text-[8px] ${
-                                req.status === 'approved' ? 'bg-green-500/10 text-green-500' :
-                                req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
-                                'bg-amber-500/10 text-amber-500'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full font-black uppercase text-[8px] ${req.status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                                  req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                    'bg-amber-500/10 text-amber-500'
+                                }`}>
                                 {req.status}
                               </span>
                             </td>
                             <td className="px-8 py-5 text-right">
                               {req.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-2">
-                                  <button 
+                                  <button
                                     onClick={() => handleRequestStatus(req.id, 'approved')}
                                     className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition-all" title="Approve"
                                   >
                                     <Check size={14} strokeWidth={3} />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => handleRequestStatus(req.id, 'rejected')}
                                     className="p-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500 hover:text-black transition-all" title="Decline"
                                   >
@@ -470,7 +483,7 @@ const Bots = () => {
 
             {activeTab === 'history' && (
               <>
-                 <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
                   <div className="flex items-center gap-3">
                     <History className="text-amber-500" size={20} />
                     <h2 className="text-sm font-black uppercase tracking-widest text-white">Sales History</h2>
@@ -478,9 +491,9 @@ const Bots = () => {
                 </div>
 
                 {loadingSellerData ? (
-                   <div className="py-24 flex flex-col items-center gap-4">
-                     <Loader2 className="animate-spin text-amber-500" size={32} />
-                   </div>
+                  <div className="py-24 flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-amber-500" size={32} />
+                  </div>
                 ) : saleHistory.length === 0 ? (
                   <div className="py-24 text-center">
                     <p className="text-gray-500 text-sm font-medium uppercase tracking-widest">No sales records found</p>
@@ -572,15 +585,15 @@ const Bots = () => {
                         <FileText size={18} className="text-amber-500" />
                         <span className="text-xs font-black uppercase tracking-widest">Service Agreement</span>
                       </div>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setIsAgreementOpen(true)}
                         className="text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase underline"
                       >
                         Read Terms
                       </button>
                     </div>
-                    
+
                     <div className="relative group">
                       <input
                         type="file"
@@ -685,22 +698,22 @@ const Bots = () => {
 
         {/* Slip Review Modal */}
         {selectedSlip && (
-          <div 
-             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300"
-             onClick={() => setSelectedSlip(null)}
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300"
+            onClick={() => setSelectedSlip(null)}
           >
             <div className="relative max-w-4xl w-full">
-               <button 
-                 className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black uppercase tracking-widest text-[10px] hover:text-amber-500 transition-colors"
-                 onClick={() => setSelectedSlip(null)}
-               >
-                 Close <X size={20} />
-               </button>
-               <img 
-                 src={selectedSlip} 
-                 alt="Payment Slip" 
-                 className="w-full h-auto rounded-[2rem] border border-white/10 shadow-2xl" 
-               />
+              <button
+                className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black uppercase tracking-widest text-[10px] hover:text-amber-500 transition-colors"
+                onClick={() => setSelectedSlip(null)}
+              >
+                Close <X size={20} />
+              </button>
+              <img
+                src={selectedSlip}
+                alt="Payment Slip"
+                className="w-full h-auto rounded-[2rem] border border-white/10 shadow-2xl"
+              />
             </div>
           </div>
         )}
