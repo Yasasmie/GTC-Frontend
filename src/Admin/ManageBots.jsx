@@ -22,6 +22,8 @@ const ManageBots = () => {
     price: '',
     cost: '',
     subscriptionFee: '',
+    botType: '',
+    botModel: '',
   });
 
   const [error, setError] = useState('');
@@ -47,7 +49,7 @@ const ManageBots = () => {
 
   const openAddModal = () => {
     setError('');
-    setForm({ name: '', price: '', cost: '', subscriptionFee: '' });
+    setForm({ name: '', price: '', cost: '', subscriptionFee: '', botType: '', botModel: '' });
     setIsAddModalOpen(true);
   };
 
@@ -59,6 +61,8 @@ const ManageBots = () => {
       price: bot.price.toString(),
       cost: bot.cost.toString(),
       subscriptionFee: bot.subscriptionFee.toString(),
+      botType: bot.botType || '',
+      botModel: bot.botModel || '',
     });
     setIsEditModalOpen(true);
   };
@@ -86,6 +90,8 @@ const ManageBots = () => {
     if (!form.price || isNaN(Number(form.price))) { setError('Invalid price format.'); return false; }
     if (!form.cost || isNaN(Number(form.cost))) { setError('Invalid cost format.'); return false; }
     if (!form.subscriptionFee || isNaN(Number(form.subscriptionFee))) { setError('Invalid fee format.'); return false; }
+    if (!form.botType.trim()) { setError('Bot type is required.'); return false; }
+    if (!form.botModel.trim()) { setError('Bot model is required.'); return false; }
     return true;
   };
 
@@ -100,6 +106,8 @@ const ManageBots = () => {
         price: Number(form.price),
         cost: Number(form.cost),
         subscriptionFee: Number(form.subscriptionFee),
+        botType: form.botType.trim(),
+        botModel: form.botModel.trim(),
       });
       setBots(prev => [created, ...prev]);
       closeAllModals();
@@ -122,6 +130,8 @@ const ManageBots = () => {
         price: Number(form.price),
         cost: Number(form.cost),
         subscriptionFee: Number(form.subscriptionFee),
+        botType: form.botType.trim(),
+        botModel: form.botModel.trim(),
       });
       setBots(prev => prev.map(b => (b.id === updated.id ? updated : b)));
       closeAllModals();
@@ -258,6 +268,10 @@ const ManageBots = () => {
                   <FormInput label="Base Oper. Cost" name="cost" type="number" value={form.cost} onChange={handleChange} placeholder="0.00" />
                 </div>
                 <FormInput label="Monthly Subscription Fee" name="subscriptionFee" type="number" value={form.subscriptionFee} onChange={handleChange} placeholder="0.00" />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormInput label="Bot Type" name="botType" value={form.botType} onChange={handleChange} placeholder="e.g. Scalper" />
+                  <FormInput label="Bot Model" name="botModel" value={form.botModel} onChange={handleChange} placeholder="e.g. v2.0" />
+                </div>
               </div>
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={closeAllModals} className="flex-1 px-6 py-4 rounded-2xl border border-white/5 text-zinc-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all">Abort</button>
