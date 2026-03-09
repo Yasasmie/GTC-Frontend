@@ -1,15 +1,19 @@
 // src/Courses.jsx
 import React, { useState, useEffect } from 'react';
-import { Clock, PlayCircle, MapPin, Send, DollarSign } from 'lucide-react';
-import { getCourses, submitCourseApplication } from '../api';
+import { Clock, PlayCircle, MapPin, Send, DollarSign, Video, Check } from 'lucide-react';
+import { getCourses, submitCourseApplication, getUserCourseApplications } from '../api';
+import { auth } from '../../firebase';
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
+  const [userApplications, setUserApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedApp, setSelectedApp] = useState(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [showApprovedOnly, setShowApprovedOnly] = useState(false);
 
   const [appForm, setAppForm] = useState({
     name: '',
@@ -26,6 +30,14 @@ const Courses = () => {
       try {
         const data = await getCourses();
         setCourses(data);
+        
+        // Wait briefly to ensure auth is initialized if navigating directly
+        setTimeout(async () => {
+          if (auth.currentUser) {
+            const apps = await getUserCourseApplications(auth.currentUser.uid);
+            setUserApplications(apps);
+          }
+        }, 500);
       } catch (err) {
         console.error('Failed to load courses:', err);
       } finally {
@@ -35,8 +47,9 @@ const Courses = () => {
     fetchCoursesData();
   }, []);
 
-  const handleApply = (course) => {
+  const handleApply = (course, userApp) => {
     setSelectedCourse(course);
+    setSelectedApp(userApp || null);
     setAppForm({
       name: '',
       email: '',
@@ -61,6 +74,11 @@ const Courses = () => {
       categoryFilter === 'All' || course.category === categoryFilter;
     const matchType =
       typeFilter === 'All' || course.type === typeFilter;
+    
+    if (showApprovedOnly) {
+      const app = userApplications.find(a => a.courseId === course.id);
+      return matchCategory && matchType && app && app.status === 'approved';
+    }
     return matchCategory && matchType;
   });
 
@@ -126,6 +144,7 @@ const Courses = () => {
         phone: appForm.phone,
         notes: appForm.notes,
         paymentSlip: appForm.paymentSlipBase64,
+        uid: auth.currentUser?.uid || 'anonymous',
       });
       alert('Application submitted successfully.');
       setShowApplyModal(false);
@@ -153,14 +172,18 @@ const Courses = () => {
         <div className="mb-10 flex flex-wrap gap-4 items-center">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setCategoryFilter('All')}
-              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                categoryFilter === 'All'
+              onClick={() => {
+                setCategoryFilter('All');
+                setTypeFilter('All');
+                setShowApprovedOnly(false);
+              }}
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
+                categoryFilter === 'All' && typeFilter === 'All' && !showApprovedOnly
                   ? 'bg-amber-500 text-black border-amber-500'
                   : 'bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10'
               }`}
             >
-              All Categories
+              All Available
             </button>
             {allCategories.map((cat) => (
               <button
@@ -179,9 +202,12 @@ const Courses = () => {
 
           <div className="flex flex-wrap gap-2 ml-auto">
             <button
-              onClick={() => setTypeFilter('All')}
+              onClick={() => {
+                setTypeFilter('All');
+                setShowApprovedOnly(false);
+              }}
               className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                typeFilter === 'All'
+                typeFilter === 'All' && !showApprovedOnly
                   ? 'bg-amber-500 text-black border-amber-500'
                   : 'bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10'
               }`}
@@ -207,6 +233,18 @@ const Courses = () => {
               }`}
             >
               Physical
+            </button>
+            <div className="w-px h-6 bg-white/10 mx-2" />
+            <button
+              onClick={() => setShowApprovedOnly(!showApprovedOnly)}
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center gap-2 ${
+                showApprovedOnly
+                  ? 'bg-emerald-500 text-black border-emerald-500'
+                  : 'bg-white/5 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10'
+              }`}
+            >
+              {showApprovedOnly ? <Check size={12} /> : <Video size={12} />}
+              My Approved Courses
             </button>
           </div>
         </div>
@@ -242,6 +280,7 @@ const Courses = () => {
                         course={course}
                         categoryColors={categoryColors}
                         onApply={handleApply}
+                        userApp={userApplications.find(a => a.courseId === course.id)}
                       />
                     ))}
                   </div>
@@ -260,6 +299,7 @@ const Courses = () => {
                         course={course}
                         categoryColors={categoryColors}
                         onApply={handleApply}
+                        userApp={userApplications.find(a => a.courseId === course.id)}
                       />
                     ))}
                   </div>
@@ -324,7 +364,66 @@ const Courses = () => {
                 {selectedCourse.description}
               </p>
 
-              <form onSubmit={handleSubmitApplication} className="space-y-3">
+              {selectedApp && selectedApp.status === 'approved' ? (
+                <div className="space-y-4">
+                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-6">
+                     <p className="text-emerald-400 text-sm font-bold uppercase tracking-widest text-center">
+                       Application Approved
+                     </p>
+                   </div>
+                   {selectedCourse.type === 'online' ? (
+                     <div className="space-y-4">
+                       <h4 className="text-lg font-black text-white italic uppercase">Course Videos</h4>
+                       {selectedCourse.youtubeLinks && selectedCourse.youtubeLinks.length > 0 ? (
+                         selectedCourse.youtubeLinks.map((link, idx) => {
+                           let embedLink = link;
+                           if (link.includes('watch?v=')) {
+                             embedLink = link.replace('watch?v=', 'embed/');
+                           } else if (link.includes('youtu.be/')) {
+                             embedLink = link.replace('youtu.be/', 'youtube.com/embed/');
+                           }
+                           return (
+                             <div key={idx} className="aspect-video w-full rounded-xl overflow-hidden border border-white/10">
+                               <iframe 
+                                 src={embedLink} 
+                                 title={`Video ${idx + 1}`}
+                                 className="w-full h-full"
+                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                 allowFullScreen
+                               ></iframe>
+                             </div>
+                           );
+                         })
+                       ) : (
+                         <p className="text-zinc-400 text-sm">No videos available yet.</p>
+                       )}
+                     </div>
+                   ) : (
+                     <p className="text-zinc-300 text-sm">You are enrolled in this physical course. Please attend at the location and date specified.</p>
+                   )}
+                   <button
+                     onClick={() => setShowApplyModal(false)}
+                     className="w-full py-3 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider hover:bg-zinc-700 transition-all mt-6"
+                   >
+                     Close
+                   </button>
+                </div>
+              ) : selectedApp && selectedApp.status === 'pending' ? (
+                <div className="space-y-4">
+                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                     <p className="text-amber-500 text-sm font-bold uppercase tracking-widest text-center">
+                       Application Pending Review
+                     </p>
+                   </div>
+                   <button
+                     onClick={() => setShowApplyModal(false)}
+                     className="w-full py-3 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider hover:bg-zinc-700 transition-all mt-4"
+                   >
+                     Close
+                   </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitApplication} className="space-y-3">
                 <p className="text-zinc-300 text-sm mb-2 font-bold uppercase tracking-widest">
                   Apply for this course
                 </p>
@@ -388,6 +487,7 @@ const Courses = () => {
                   </button>
                 </div>
               </form>
+              )}
             </div>
           </div>
         </div>
@@ -396,8 +496,23 @@ const Courses = () => {
   );
 };
 
-const CourseCard = ({ course, categoryColors, onApply }) => {
+const CourseCard = ({ course, categoryColors, onApply, userApp }) => {
   const isOnline = course.type === 'online';
+
+  let btnText = 'View Details / Apply';
+  let btnIcon = <Send size={16} />;
+
+  if (userApp) {
+    if (userApp.status === 'pending') {
+      btnText = 'Application Pending';
+      btnIcon = <Clock size={16} />;
+    } else if (userApp.status === 'approved') {
+      btnText = isOnline ? 'Watch Videos' : 'Enrolled (Details)';
+      btnIcon = isOnline ? <Video size={16} /> : <Check size={16} />; // Need to import Check, or use MapPin
+    } else if (userApp.status === 'rejected') {
+      btnText = 'Application Rejected (Re-apply)';
+    }
+  }
 
   return (
     <div className="bg-zinc-950 border border-white/5 rounded-[2rem] overflow-hidden hover:border-amber-500/30 transition-all group">
@@ -442,10 +557,10 @@ const CourseCard = ({ course, categoryColors, onApply }) => {
         </p>
 
         <button
-          onClick={() => onApply(course)}
-          className="w-full py-4 bg-white/5 border border-white/10 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-black hover:border-amber-500 transition-all flex items-center justify-center gap-2"
+          onClick={() => onApply(course, userApp)}
+          className={`w-full py-4 bg-white/5 border border-white/10 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-black hover:border-amber-500 transition-all flex items-center justify-center gap-2 ${userApp?.status === 'pending' ? 'opacity-80' : ''}`}
         >
-          <Send size={16} /> View Details / Apply
+          {btnIcon} {btnText}
         </button>
       </div>
     </div>

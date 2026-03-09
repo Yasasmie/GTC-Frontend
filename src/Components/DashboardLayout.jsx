@@ -11,14 +11,18 @@ import {
   Bell,
   LogOut,
   ChevronDown,
+  Check,
 } from 'lucide-react';
-import { auth } from '../../firebase';
+import { auth } from '../../firebase'; // wait, it's ../../firebase for DashboardLayout? Yes, firebase is at src/../firebase.js
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../api';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,6 +30,7 @@ const DashboardLayout = () => {
     const unsubscribe = onAuthStateChanged(auth, currentUser => {
       if (currentUser) {
         setUser(currentUser);
+        fetchNotifications(currentUser.uid);
       } else {
         navigate('/login');
       }
@@ -34,6 +39,35 @@ const DashboardLayout = () => {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  const fetchNotifications = async (uid) => {
+    try {
+      const data = await getUserNotifications(uid);
+      setNotifications(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAsRead = async (notifId) => {
+    if (!user) return;
+    try {
+      await markNotificationAsRead(user.uid, notifId);
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
+    try {
+      await markAllNotificationsAsRead(user.uid);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -57,7 +91,7 @@ const DashboardLayout = () => {
     { name: 'My Profile', icon: User, path: '/dashboard/profile' },
     { name: 'My Accounts', icon: Wallet, path: '/dashboard/accounts' },
     { name: 'My Bots', icon: Bot, path: '/dashboard/bots' },
-    { name: 'My Courses', icon: FileText, path: '/dashboard/courses' },
+    { name: 'Courses', icon: FileText, path: '/dashboard/courses' },
     {
       name: 'Plans and Billing',
       icon: FileText,
@@ -140,11 +174,52 @@ const DashboardLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-6">
-            <button className="text-gray-400 hover:text-amber-500 relative transition-colors">
+          <div className="flex items-center gap-4 md:gap-6 relative">
+            <button
+               onClick={() => setShowNotifications(!showNotifications)}
+               className="text-gray-400 hover:text-amber-500 relative transition-colors"
+            >
               <Bell size={20} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-zinc-950" />
+              {notifications.some(n => !n.read) && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-zinc-950" />
+              )}
             </button>
+            
+            {showNotifications && (
+              <div className="absolute top-12 right-0 md:right-32 w-80 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[400px]">
+                <div className="p-3 border-b border-white/10 flex justify-between items-center bg-zinc-950">
+                  <span className="font-bold text-sm text-white">Notifications</span>
+                  <button onClick={handleMarkAllAsRead} className="text-[10px] text-amber-500 hover:text-amber-400 font-bold uppercase tracking-wider">
+                    Mark all as read
+                  </button>
+                </div>
+                <div className="overflow-y-auto flex-1 p-2 space-y-2">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-zinc-500 text-xs">No notifications yet</div>
+                  ) : (
+                    notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        className={`p-3 rounded-lg text-sm transition-colors cursor-pointer flex justify-between gap-3 ${n.read ? 'bg-black/40 text-zinc-400' : 'bg-black/80 text-white border border-white/5'}`}
+                        onClick={() => {
+                          handleMarkAsRead(n.id);
+                          setShowNotifications(false);
+                          if (n.type === 'course_application') {
+                            navigate('/dashboard/courses');
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <p className="text-xs mb-1 leading-snug">{n.message}</p>
+                          <span className="text-[10px] text-amber-500/70">{new Date(n.createdAt).toLocaleString()}</span>
+                        </div>
+                        {!n.read && <div className="w-2 h-2 rounded-full bg-amber-500 mt-1 flex-shrink-0"></div>}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
             
             <div className="flex items-center gap-3 pl-4 md:pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">

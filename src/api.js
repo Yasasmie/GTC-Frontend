@@ -101,6 +101,15 @@ export const createUserBot = async (uid, data) => {
   return handleResponse(res, 'Failed to create user bot');
 };
 
+// --- BOTS (ADMIN VIEW PER USER) ---
+
+// Used by UserBotsDetail.jsx to view all bots for a specific user UID in admin panel.
+// Backend route should be: GET /api/admin/users/:uid/bots
+export const adminGetUserBots = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/admin/users/${uid}/bots`);
+  return handleResponse(res, 'Failed to load user bots for admin');
+};
+
 // --- KYC REQUESTS (ADMIN) ---
 
 export const getKycRequests = async () => {
@@ -239,11 +248,42 @@ export const getCourseApplications = async () => {
   return handleResponse(res, 'Failed to load course applications');
 };
 
+export const getUserCourseApplications = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/course-applications`);
+  return handleResponse(res, 'Failed to load user course applications');
+};
+
 export const updateCourseApplicationStatus = async (id, status) => {
-  const res = await fetch(`${API_BASE}/api/admin/course-applications/${id}/status`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  });
+  const res = await fetch(
+    `${API_BASE}/api/admin/course-applications/${id}/status`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }
+  );
   return handleResponse(res, 'Failed to update application status');
+};
+
+// --- NOTIFICATIONS ---
+export const getUserNotifications = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/notifications`);
+  return handleResponse(res, 'Failed to fetch notifications');
+};
+
+export const markNotificationAsRead = async (uid, notifId) => {
+  const res = await fetch(
+    `${API_BASE}/api/users/${uid}/notifications/${notifId}/read`,
+    {
+      method: 'PUT',
+    }
+  );
+  return handleResponse(res, 'Failed to mark notification as read');
+};
+
+export const markAllNotificationsAsRead = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/notifications/read-all`, {
+    method: 'PUT',
+  });
+  return handleResponse(res, 'Failed to mark all notifications as read');
 };

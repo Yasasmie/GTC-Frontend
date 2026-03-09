@@ -3,22 +3,22 @@ import React, { useState, useEffect } from 'react';
 import {
   Search,
   Eye,
-  Edit3,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
-  ShieldCheck,
-  UserPlus,
-  ArrowUpRight
 } from 'lucide-react';
 import {
   adminListUsers,
   adminApproveUser,
   adminDeleteUser,
 } from '../api';
+import { useNavigate } from 'react-router-dom';
 
 const ManageUsers = () => {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,11 +81,21 @@ const ManageUsers = () => {
     }
   };
 
+  const handleViewBots = (user) => {
+    if (!user?.uid) {
+      alert('This user has no UID recorded.');
+      return;
+    }
+    navigate(`/admin/users/${user.id}/bots?uid=${encodeURIComponent(user.uid)}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-amber-500/20 border-t-amber-500"></div>
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 animate-pulse">Decrypting Registry...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 animate-pulse">
+          Decrypting Registry...
+        </p>
       </div>
     );
   }
@@ -98,7 +108,9 @@ const ManageUsers = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <ShieldCheck size={14} className="text-amber-500" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">System Security // User Access Registry</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
+                System Security // User Access Registry
+              </span>
             </div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
               Operator <span className="text-amber-500">Registry</span>
@@ -113,12 +125,19 @@ const ManageUsers = () => {
                 onChange={e => { setShowEntries(Number(e.target.value)); setCurrentPage(1); }}
                 className="bg-transparent border-none text-white font-black text-xs focus:outline-none appearance-none cursor-pointer"
               >
-                {[10, 25, 50].map(val => <option key={val} value={val} className="bg-zinc-950 text-white">{val}</option>)}
+                {[10, 25, 50].map(val => (
+                  <option key={val} value={val} className="bg-zinc-950 text-white">
+                    {val}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-amber-500 transition-colors" size={18} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-amber-500 transition-colors"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="SEARCH OPERATOR ID OR EMAIL..."
@@ -137,8 +156,12 @@ const ManageUsers = () => {
               {selectedRows.length} Operators Selected for Batch Command
             </span>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-black text-white text-[10px] font-black uppercase rounded-xl hover:bg-zinc-800 transition-colors">Authorize All</button>
-              <button className="px-4 py-2 bg-rose-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-rose-700 transition-colors">Purge Data</button>
+              <button className="px-4 py-2 bg-black text-white text-[10px] font-black uppercase rounded-xl hover:bg-zinc-800 transition-colors">
+                Authorize All
+              </button>
+              <button className="px-4 py-2 bg-rose-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-rose-700 transition-colors">
+                Purge Data
+              </button>
             </div>
           </div>
         )}
@@ -149,11 +172,21 @@ const ManageUsers = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-900/30 border-b border-white/5">
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Select</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Identity</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Access Status</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">KYC Verify</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">System Actions</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    Select
+                  </th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    Identity
+                  </th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    Access Status
+                  </th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    KYC Verify
+                  </th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">
+                    System Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -173,41 +206,63 @@ const ManageUsers = () => {
                           {(user.name || user.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-white uppercase tracking-tight">{user.name || 'Anonymous Operator'}</p>
-                          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">{user.email}</p>
+                          <p className="text-sm font-black text-white uppercase tracking-tight">
+                            {user.name || 'Anonymous Operator'}
+                          </p>
+                          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
+                            {user.email}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                        user.status === 'approved' 
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' 
-                        : 'bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse'
-                      }`}>
-                        <div className={`w-1 h-1 rounded-full ${user.status === 'approved' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      <span
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                          user.status === 'approved'
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                            : 'bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse'
+                        }`}
+                      >
+                        <div
+                          className={`w-1 h-1 rounded-full ${
+                            user.status === 'approved' ? 'bg-emerald-500' : 'bg-amber-500'
+                          }`}
+                        />
                         {user.status || 'Unknown'}
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${user.kycCompleted ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                        {user.kycCompleted ? <ShieldCheck size={14} className="text-emerald-500" /> : <ShieldAlert size={14} />}
+                      <div
+                        className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${
+                          user.kycCompleted ? 'text-zinc-300' : 'text-zinc-600'
+                        }`}
+                      >
+                        {user.kycCompleted ? (
+                          <ShieldCheck size={14} className="text-emerald-500" />
+                        ) : (
+                          <ShieldAlert size={14} />
+                        )}
                         {user.kycCompleted ? 'Verified' : 'Unverified'}
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2 justify-end">
-                        <button className="p-2.5 bg-zinc-900 rounded-xl hover:text-amber-500 border border-transparent hover:border-amber-500/30 transition-all">
+                        <button
+                          className="p-2.5 bg-zinc-900 rounded-xl hover:text-amber-500 border border-transparent hover:border-amber-500/30 transition-all"
+                          onClick={() => handleViewBots(user)}
+                          title="View user bots"
+                        >
                           <Eye size={16} />
                         </button>
                         {user.status !== 'approved' && (
-                          <button 
+                          <button
                             onClick={() => handleApprove(user.id)}
                             className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/10"
                           >
                             Authorize
                           </button>
                         )}
-                        <button 
+                        <button
                           onClick={() => handleDelete(user.id)}
                           className="p-2.5 bg-zinc-900 rounded-xl hover:text-rose-500 border border-transparent hover:border-rose-500/30 transition-all"
                         >
@@ -225,9 +280,10 @@ const ManageUsers = () => {
         {/* Pagination Console */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mt-12 pb-12 border-t border-white/5 pt-8">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
-            Record Block {Math.min(currentPage * showEntries, filteredUsers.length)} of {filteredUsers.length} entries // System Stable
+            Record Block {Math.min(currentPage * showEntries, filteredUsers.length)} of{' '}
+            {filteredUsers.length} entries // System Stable
           </p>
-          
+
           <div className="flex items-center gap-4">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -238,7 +294,8 @@ const ManageUsers = () => {
             </button>
             <div className="px-6 py-3 bg-zinc-900 border border-white/5 rounded-xl">
               <span className="text-xs font-black text-white uppercase tracking-widest">
-                Page <span className="text-amber-500">{currentPage}</span> <span className="text-zinc-600">/</span> {totalPages}
+                Page <span className="text-amber-500">{currentPage}</span>{' '}
+                <span className="text-zinc-600">/</span> {totalPages}
               </span>
             </div>
             <button

@@ -1,6 +1,6 @@
 // src/App.jsx
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -28,6 +28,7 @@ import BotRequests from './Admin/BotRequests';
 import AdminCareers from './Admin/AdminCareers';
 import AdminCourses from './Admin/AdminCourses';
 import ApplyCourses from './Admin/ApplyCourse';
+import UserBotsDetail from './Admin/UserBotsDetail';
 
 import { getUserByUid } from './api';
 
@@ -175,6 +176,7 @@ function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<ManageUsers />} />
+          <Route path="users/:id/bots" element={<UserBotsDetail />} />
           <Route path="kyc" element={<KycRequests />} />
           <Route path="bots" element={<ManageBots />} />
           <Route path="bot-requests" element={<BotRequests />} />
