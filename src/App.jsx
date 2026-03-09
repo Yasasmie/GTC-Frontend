@@ -17,6 +17,7 @@ import MyBots from './Pages/MyBots';
 import Account from './Pages/Account';
 import Profile from './Pages/Profile';
 import Courses from './Pages/Courses';
+import Marketplace from './Pages/Marketplace';
 
 import AdminLogin from './Admin/AdminLogin';
 import AdminNav from './Components/AdminNav';
@@ -29,6 +30,7 @@ import AdminCareers from './Admin/AdminCareers';
 import AdminCourses from './Admin/AdminCourses';
 import ApplyCourses from './Admin/ApplyCourse';
 import UserBotsDetail from './Admin/UserBotsDetail';
+import ResaleHistory from './Admin/ResaleHistory';
 
 import { getUserByUid } from './api';
 
@@ -162,6 +164,7 @@ function App() {
           <Route path="accounts" element={<Account />} />
           <Route path="profile" element={<Profile />} />
           <Route path="courses" element={<Courses />} />
+          <Route path="marketplace" element={<Marketplace />} />
         </Route>
 
         {/* Admin */}
@@ -183,6 +186,7 @@ function App() {
           <Route path="careers" element={<AdminCareers />} />
           <Route path="courses" element={<AdminCourses />} />
           <Route path="apply-courses" element={<ApplyCourses />} />
+          <Route path="resale-history" element={<ResaleHistory />} />
         </Route>
 
         {/* Fallback */}

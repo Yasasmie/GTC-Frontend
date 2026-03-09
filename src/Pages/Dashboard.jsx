@@ -8,10 +8,14 @@ import {
   Trophy, 
   ArrowUpRight, 
   History, 
-  TrendingUp 
+  TrendingUp,
+  Cpu
 } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { getUserProfile } from '../api';
 
-const Dashboard = ({ currentUser }) => {
+const Dashboard = () => {
+  const { currentUser } = useOutletContext();
   const [copied, setCopied] = useState(false);
   const [earnings, setEarnings] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -37,8 +41,22 @@ const Dashboard = ({ currentUser }) => {
   };
 
   useEffect(() => {
-    // Placeholder for future Firebase/Backend data fetching
-  }, []);
+    const fetchData = async () => {
+      if (!currentUser) return;
+      try {
+        const profile = await getUserProfile(currentUser.uid);
+        setStats(prev => ({
+          ...prev,
+          totalSells: profile.totalSells || 0,
+          totalRevenue: profile.totalRevenue || 0,
+          referredBy: profile.referredBy || null,
+        }));
+      } catch (err) {
+        console.error('Failed to load dashboard stats', err);
+      }
+    };
+    fetchData();
+  }, [currentUser]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -56,51 +74,53 @@ const Dashboard = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Referral Link Section */}
-      <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 relative overflow-hidden group shadow-2xl">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-        
-        <div className="relative z-10">
-          <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">
-            Your Affiliate Network Link
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 bg-black/50 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-gray-300 font-mono truncate">
-              {referralLink}
+      {/* Referral Link Section - Only show for direct users/resellers */}
+      {!stats.referredBy && (
+        <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 relative overflow-hidden group shadow-2xl">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+          
+          <div className="relative z-10">
+            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">
+              Your Affiliate Network Link
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 bg-black/50 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-gray-300 font-mono truncate">
+                {referralLink}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/10 min-w-[140px]"
+              >
+                {copied ? <Check size={18} /> : <Copy size={18} />}
+                {copied ? 'COPIED' : 'COPY LINK'}
+              </button>
             </div>
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center gap-2 px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/10 min-w-[140px]"
-            >
-              {copied ? <Check size={18} /> : <Copy size={18} />}
-              {copied ? 'COPIED' : 'COPY LINK'}
-            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
-          title="Investment Portfolio"
-          subTitle={stats.currentPackageName}
-          value={`$${stats.currentPackageAmount.toFixed(2)}`}
-          growth={`+$${stats.totalCommission.toFixed(2)} Profit`}
+          title="Marketplace Earnings"
+          subTitle="Total Revenue"
+          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+          growth="Total Profit from Sales"
           icon={<Wallet className="text-amber-500" size={24} />}
         />
         <StatCard 
-          title="Active Accounts"
-          value={stats.accountsCount}
-          subTitle="Live Licenses"
-          growth={`${stats.activePackagesCount} Active Nodes`}
+          title="Successful Sales"
+          value={stats.totalSells || 0}
+          subTitle="Bot Distribution"
+          growth="Marketplace Reach"
           icon={<TrendingUp className="text-amber-500" size={24} />}
         />
         <StatCard 
-          title="Team Network"
-          subTitle="Direct Referrals"
-          value={stats.teamCount}
-          growth="Total Members"
-          icon={<Users className="text-amber-500" size={24} />}
+          title="Active Licenses"
+          subTitle="Deployed Nodes"
+          value={stats.activePackagesCount}
+          growth="System Stability: 100%"
+          icon={<Cpu className="text-amber-500" size={24} />}
         />
       </div>
 

@@ -15,11 +15,11 @@ const handleResponse = async (res, errorMessage) => {
 
 // --- USER ENDPOINTS ---
 
-export const createUserRecord = async ({ uid, email, name }) => {
+export const createUserRecord = async ({ uid, email, name, referredBy }) => {
   const res = await fetch(`${API_BASE}/api/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uid, email, name }),
+    body: JSON.stringify({ uid, email, name, referredBy }),
   });
   return handleResponse(res, 'Failed to create user record');
 };
@@ -286,4 +286,63 @@ export const markAllNotificationsAsRead = async (uid) => {
     method: 'PUT',
   });
   return handleResponse(res, 'Failed to mark all notifications as read');
+};
+
+// --- BOT RESALE ---
+
+export const resellUserBot = async (uid, botId, resalePrice) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/bots/${botId}/resell`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resalePrice }),
+  });
+  return handleResponse(res, 'Failed to list bot for resale');
+};
+
+export const cancelResellUserBot = async (uid, botId) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/bots/${botId}/cancel-resale`, {
+    method: 'POST',
+  });
+  return handleResponse(res, 'Failed to cancel resale');
+};
+
+export const getResaleMarketplace = async (buyerUid) => {
+  const url = buyerUid 
+    ? `${API_BASE}/api/bots/resale?buyerUid=${buyerUid}`
+    : `${API_BASE}/api/bots/resale`;
+  const res = await fetch(url);
+  return handleResponse(res, 'Failed to load resale marketplace');
+};
+
+export const submitResaleRequest = async (data) => {
+  const res = await fetch(`${API_BASE}/api/bots/resale/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res, 'Failed to submit purchase request');
+};
+
+export const getSellerRequests = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/seller-requests`);
+  return handleResponse(res, 'Failed to load purchase requests');
+};
+
+export const updateResaleRequestStatus = async (requestId, status) => {
+  const res = await fetch(`${API_BASE}/api/bots/resale/requests/${requestId}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  return handleResponse(res, `Failed to ${status} request`);
+};
+
+export const getSaleHistory = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/sale-history`);
+  return handleResponse(res, 'Failed to load sale history');
+};
+
+export const adminGetResaleHistory = async () => {
+  const res = await fetch(`${API_BASE}/api/admin/resale-history`);
+  return handleResponse(res, 'Failed to load global sale history');
 };

@@ -79,10 +79,31 @@ const UserBotsDetail = () => {
           </h1>
           {user && (
             <p className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
-              {user.name || 'Anonymous Operator'} // {user.email}
+              {user.email} // {user.name || 'Anonymous Operator'}
             </p>
           )}
         </div>
+
+        {user && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
+            <div className="bg-zinc-950 border border-white/5 p-6 rounded-3xl">
+              <p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Total Sales</p>
+              <p className="text-2xl font-black text-white italic">{user.totalSells || 0}</p>
+            </div>
+            <div className="bg-zinc-950 border border-white/5 p-6 rounded-3xl">
+              <p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Total Revenue</p>
+              <p className="text-2xl font-black text-amber-500 italic">${(user.totalRevenue || 0).toLocaleString()}</p>
+            </div>
+            <div className="bg-zinc-950 border border-white/5 p-6 rounded-3xl">
+              <p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Status</p>
+              <p className="text-sm font-black text-emerald-500 uppercase mt-2 italic">{user.status}</p>
+            </div>
+            <div className="bg-zinc-950 border border-white/5 p-6 rounded-3xl">
+              <p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Account Created</p>
+              <p className="text-[11px] font-bold text-zinc-400 mt-2">{new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+        )}
 
         {bots.length === 0 ? (
           <p className="text-sm text-zinc-500">

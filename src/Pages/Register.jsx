@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { User, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { auth } from '../../firebase';
 import {
@@ -14,6 +14,9 @@ import Footer from '../Components/Footer';
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref');
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -44,6 +47,7 @@ const Register = () => {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
         name: `${formData.firstName} ${formData.lastName}`,
+        referredBy: ref || null,
       });
 
       await sendEmailVerification(userCredential.user, {

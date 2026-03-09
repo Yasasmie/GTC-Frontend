@@ -71,7 +71,8 @@ const AdminNav = () => {
       dropdownKey: 'purchases',
       subItems: [
         { name: 'Pending Ledger', path: '/admin/purchases/pending' },
-        { name: 'Full History', path: '/admin/purchases/all' }
+        { name: 'Full History', path: '/admin/purchases/all' },
+        { name: 'Marketplace History', path: '/admin/resale-history' }
       ]
     },
     { name: 'Network Tree', icon: Shield, path: '/admin/referrals' }

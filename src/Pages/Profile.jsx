@@ -6,7 +6,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from 'firebase/auth';
-import { User, ShieldCheck, Key, MapPin, Mail, Loader2 } from 'lucide-react';
+import { User, ShieldCheck, Key, MapPin, Mail, Loader2, ShoppingCart, Cpu, DollarSign } from 'lucide-react';
 
 const Profile = () => {
   const firebaseUser = auth.currentUser;
@@ -81,12 +81,11 @@ const Profile = () => {
     <div className="min-h-screen bg-black text-white p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
-            Trader <span className="text-amber-500">Profile</span>
+            My <span className="text-amber-500">Profile</span>
           </h1>
-          <p className="text-gray-500 text-sm font-medium">Manage your Gold FX account security and identity</p>
+          <p className="text-gray-500 text-sm font-medium">Manage your account and security settings</p>
         </div>
 
         {loadingProfile ? (
@@ -129,10 +128,10 @@ const Profile = () => {
             <ProfileCard title="Identity Details (KYC)" icon={<ShieldCheck className="text-amber-500" size={20} />}>
               {kyc ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <InfoBox label="Legal Name" value={kyc.fullName} />
-                  <InfoBox label="Document Number" value={kyc.idNumber} />
+                  <InfoBox label="Full Name" value={kyc.fullName} />
+                  <InfoBox label="ID Number" value={kyc.idNumber} />
                   <div className="md:col-span-2">
-                    <InfoBox label="Residential Address" value={kyc.address} icon={<MapPin size={14}/>} />
+                    <InfoBox label="Home Address" value={kyc.address} icon={<MapPin size={14}/>} />
                   </div>
                   <InfoBox label="City" value={kyc.city} />
                   <InfoBox label="Country" value={kyc.country} />
@@ -142,6 +141,22 @@ const Profile = () => {
                   <p className="text-gray-500 text-sm font-medium italic">No KYC data submitted yet.</p>
                 </div>
               )}
+            </ProfileCard>
+
+            {/* Sales Statistics Card */}
+            <ProfileCard title="Sales Stats" icon={<ShoppingCart className="text-amber-500" size={20} />}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <InfoBox 
+                  label="Bots Sold" 
+                  value={profile?.totalSells?.toString() || '0'} 
+                  icon={<Cpu size={14}/>} 
+                />
+                <InfoBox 
+                  label="Total Earned" 
+                  value={`$${(profile?.totalRevenue || 0).toLocaleString()}`} 
+                  icon={<DollarSign size={14}/>} 
+                />
+              </div>
             </ProfileCard>
 
             {/* Security Card */}
@@ -160,7 +175,7 @@ const Profile = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">New Secure Password</label>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">New Password</label>
                     <input
                       type="password"
                       value={newPassword}
@@ -182,7 +197,7 @@ const Profile = () => {
                   className="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-xl disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-amber-500/10 flex items-center gap-2"
                 >
                   {changePwLoading && <Loader2 size={16} className="animate-spin" />}
-                  {changePwLoading ? 'UPDATING SECURE KEY...' : 'UPDATE PASSWORD'}
+                  {changePwLoading ? 'SAVING...' : 'SAVE PASSWORD'}
                 </button>
               </form>
             </ProfileCard>

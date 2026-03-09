@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { auth } from '../../firebase';
 import {
   getUserAccounts,
   getUserBots,
   createUserBot,
   getUserByUid,
   adminListBots,
+  resellUserBot,
+  cancelResellUserBot,
+  getSellerRequests,
+  updateResaleRequestStatus,
+  getSaleHistory,
 } from '../api';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   Cpu, 
   Plus, 
@@ -17,10 +22,19 @@ import {
   ExternalLink,
   X,
   Loader2,
-  DollarSign
+  DollarSign,
+  Tag,
+  ArrowRightLeft,
+  History,
+  ClipboardCheck,
+  Eye,
+  Check,
+  Ban,
+  Shield
 } from 'lucide-react';
 
 const Bots = () => {
+  const { currentUser: firebaseUser } = useOutletContext();
   const [accounts, setAccounts] = useState([]);
   const [botsCatalog, setBotsCatalog] = useState([]);
   const [userBots, setUserBots] = useState([]);
@@ -40,8 +54,19 @@ const Bots = () => {
 
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
-
-  const firebaseUser = auth.currentUser;
+  
+  // Resale states
+  const [isResaleModalOpen, setIsResaleModalOpen] = useState(false);
+  const [resaleBot, setResaleBot] = useState(null);
+  const [resalePrice, setResalePrice] = useState('');
+  const [reselling, setReselling] = useState(false);
+  
+  // Seller Panel states
+  const [activeTab, setActiveTab] = useState('my-bots'); // 'my-bots', 'requests', 'history'
+  const [requests, setRequests] = useState([]);
+  const [saleHistory, setSaleHistory] = useState([]);
+  const [loadingSellerData, setLoadingSellerData] = useState(false);
+  const [selectedSlip, setSelectedSlip] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,6 +87,11 @@ const Bots = () => {
         setBotsCatalog(catalog);
         setUserBots(myBots);
         setUserRecord(userRec);
+        
+        // Load seller data if user has listed bots
+        if (myBots.some(b => b.isForResale)) {
+          loadSellerPanelData();
+        }
       } catch (err) {
         console.error('Failed to load bots data', err);
       } finally {
@@ -72,6 +102,23 @@ const Bots = () => {
     };
     loadData();
   }, [firebaseUser]);
+
+  const loadSellerPanelData = async () => {
+    if (!firebaseUser) return;
+    setLoadingSellerData(true);
+    try {
+      const [reqs, history] = await Promise.all([
+        getSellerRequests(firebaseUser.uid),
+        getSaleHistory(firebaseUser.uid)
+      ]);
+      setRequests(reqs);
+      setSaleHistory(history);
+    } catch (err) {
+      console.error('Failed to load seller data', err);
+    } finally {
+      setLoadingSellerData(false);
+    }
+  };
 
   const isKycApproved =
     userRecord &&
@@ -132,7 +179,55 @@ const Bots = () => {
     }
   };
 
+  const handleResell = async (e) => {
+    e.preventDefault();
+    if (!resaleBot || !resalePrice) return;
+    
+    setReselling(true);
+    try {
+      await resellUserBot(firebaseUser.uid, resaleBot.id, Number(resalePrice));
+      const updatedBots = await getUserBots(firebaseUser.uid);
+      setUserBots(updatedBots);
+      setIsResaleModalOpen(false);
+      setResaleBot(null);
+      setResalePrice('');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to list bot for resale');
+    } finally {
+      setReselling(false);
+    }
+  };
+
+  const handleCancelResale = async (botId) => {
+    try {
+      await cancelResellUserBot(firebaseUser.uid, botId);
+      const updatedBots = await getUserBots(firebaseUser.uid);
+      setUserBots(updatedBots);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to cancel resale');
+    }
+  };
+
+  const handleRequestStatus = async (requestId, status) => {
+    try {
+      await updateResaleRequestStatus(requestId, status);
+      await loadSellerPanelData();
+      const updatedBots = await getUserBots(firebaseUser.uid);
+      setUserBots(updatedBots);
+    } catch (err) {
+      alert(err.message || 'Failed to update request');
+    }
+  };
+
   const isGlobalLoading = loadingAccounts || loadingBots || loadingUser;
+  
+  const openResaleModal = (bot) => {
+    setResaleBot(bot);
+    setResalePrice(bot.price || '');
+    setIsResaleModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-8">
@@ -142,9 +237,9 @@ const Bots = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase">
-              Bot <span className="text-amber-500">Fleet</span>
+              My <span className="text-amber-500">Bots</span>
             </h1>
-            <p className="text-gray-500 text-sm font-medium mt-1">Automated algorithmic trading deployments</p>
+            <p className="text-gray-500 text-sm font-medium mt-1">Manage and sell your trading bots</p>
           </div>
           <button
             onClick={openAddModal}
@@ -152,7 +247,7 @@ const Bots = () => {
             className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-30 disabled:grayscale"
           >
             <Plus size={20} strokeWidth={3} />
-            DEPLOY BOT
+            ADD NEW BOT
           </button>
         </div>
 
@@ -173,63 +268,250 @@ const Bots = () => {
           )}
         </div>
 
+        {/* Tabs Navigation */}
+        <div className="flex items-center gap-1 bg-zinc-950 border border-white/5 p-1 rounded-2xl mb-8 w-fit">
+          <button 
+            onClick={() => setActiveTab('my-bots')}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'my-bots' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+          >
+            My Bots
+          </button>
+          <button 
+            onClick={() => { setActiveTab('requests'); loadSellerPanelData(); }}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'requests' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+          >
+            Sales Requests
+            {requests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] border-2 border-black">
+                {requests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
+          <button 
+            onClick={() => { setActiveTab('history'); loadSellerPanelData(); }}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+          >
+            Sales History
+          </button>
+        </div>
+
         {isGlobalLoading ? (
           <div className="py-20 flex flex-col items-center gap-4">
             <Loader2 className="animate-spin text-amber-500" size={32} />
-            <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Synchronizing Systems...</p>
+            <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Loading...</p>
           </div>
         ) : (
           <div className="bg-zinc-950 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
-            <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
-              <div className="flex items-center gap-3">
-                <Cpu className="text-amber-500" size={20} />
-                <h2 className="text-sm font-black uppercase tracking-widest text-white">Active Deployments</h2>
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">System Load: {userBots.length} Unit(s)</span>
-            </div>
-
-            {userBots.length === 0 ? (
-              <div className="py-24 text-center">
-                <div className="inline-flex p-5 rounded-full bg-white/5 mb-4">
-                  <Cpu size={40} className="text-zinc-800" />
+            {activeTab === 'my-bots' && (
+              <>
+                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+                  <div className="flex items-center gap-3">
+                    <Cpu className="text-amber-500" size={20} />
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">Bot List</h2>
+                  </div>
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">You have {userBots.length} bot(s)</span>
                 </div>
-                <p className="text-gray-500 text-sm font-medium italic max-w-xs mx-auto">
-                  No active bot configurations found. Initialize a deployment to begin.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left border-b border-white/5">
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Index</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Deployment Target</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Bot Model</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">License Fee</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Legal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {userBots.map((b, index) => (
-                      <tr key={b.id} className="group hover:bg-white/[0.02] transition-colors">
-                        <td className="px-8 py-5 text-sm font-mono text-gray-600">{(index + 1).toString().padStart(2, '0')}</td>
-                        <td className="px-8 py-5">
-                          <p className="text-sm font-black text-white">{b.broker}</p>
-                          <p className="text-[10px] text-amber-500/70 font-mono tracking-tighter">ID: {b.accountNumber}</p>
-                        </td>
-                        <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
-                        <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
-                        <td className="px-8 py-5">
-                          <a href="#" className="flex items-center gap-1 text-[10px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-widest">
-                            <FileText size={12} className="text-amber-500" />
-                            View Terms
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+
+                {userBots.length === 0 ? (
+                  <div className="py-24 text-center">
+                    <div className="inline-flex p-5 rounded-full bg-white/5 mb-4">
+                      <Cpu size={40} className="text-zinc-800" />
+                    </div>
+                    <p className="text-gray-500 text-sm font-medium italic max-w-xs mx-auto">
+                      No active bot configurations found. Initialize a deployment to begin.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b border-white/5">
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">No.</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Account</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Bot Model</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Price Paid</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Selling Status</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {userBots.map((b, index) => (
+                          <tr key={b.id} className="group hover:bg-white/[0.02] transition-colors">
+                            <td className="px-8 py-5 text-sm font-mono text-gray-600">{(index + 1).toString().padStart(2, '0')}</td>
+                            <td className="px-8 py-5">
+                              <p className="text-sm font-black text-white">{b.broker}</p>
+                              <p className="text-[10px] text-amber-500/70 font-mono tracking-tighter">ID: {b.accountNumber}</p>
+                            </td>
+                            <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
+                            <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
+                            <td className="px-8 py-5">
+                              {b.isForResale ? (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-black text-green-500 uppercase">Listed at ${b.resalePrice}</span>
+                                  <button 
+                                    onClick={() => handleCancelResale(b.id)}
+                                    className="text-[9px] text-red-500 font-bold hover:underline w-fit"
+                                  >
+                                    Cancel Listing
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-black text-gray-600 uppercase">Private</span>
+                              )}
+                            </td>
+                            <td className="px-8 py-5">
+                              {b.status === 'approved' && !b.isForResale && !b.boughtFrom && (
+                                <button 
+                                  onClick={() => openResaleModal(b)}
+                                  className="flex items-center gap-1 text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest"
+                                >
+                                  <Tag size={12} />
+                                  Sell Bot
+                                </button>
+                              )}
+                              {b.boughtFrom && (
+                                <span className="text-[10px] font-black text-gray-700 uppercase italic">Resale Restricted</span>
+                              )}
+                              {b.status !== 'approved' && (
+                                <span className="text-[10px] font-black text-gray-600 uppercase italic">Waiting for Approval</span>
+                              )}
+                              {b.isForResale && (
+                                <span className="text-[10px] font-black text-green-500/50 uppercase italic">On Market</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'requests' && (
+              <>
+                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="text-amber-500" size={20} />
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">Purchase Requests</h2>
+                  </div>
+                </div>
+
+                {loadingSellerData ? (
+                   <div className="py-24 flex flex-col items-center gap-4">
+                     <Loader2 className="animate-spin text-amber-500" size={32} />
+                   </div>
+                ) : requests.length === 0 ? (
+                  <div className="py-24 text-center">
+                    <p className="text-gray-500 text-sm font-medium uppercase tracking-widest">No requests found</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="text-left border-b border-white/5">
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Buyer</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Bot</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Amount</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Payment Slip</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Status</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {requests.map(req => (
+                          <tr key={req.id} className="hover:bg-white/[0.02]">
+                            <td className="px-8 py-5 font-black text-white lg:whitespace-nowrap">{req.buyerName}</td>
+                            <td className="px-8 py-5 font-bold text-gray-400">{req.botName}</td>
+                            <td className="px-8 py-5 font-mono text-amber-500">${req.price}</td>
+                            <td className="px-8 py-5">
+                              <button 
+                                onClick={() => setSelectedSlip(req.paymentSlip)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all text-[10px] font-black uppercase"
+                              >
+                                <Eye size={12} /> View Slip
+                              </button>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className={`px-2 py-0.5 rounded-full font-black uppercase text-[8px] ${
+                                req.status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                                req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                'bg-amber-500/10 text-amber-500'
+                              }`}>
+                                {req.status}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              {req.status === 'pending' && (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button 
+                                    onClick={() => handleRequestStatus(req.id, 'approved')}
+                                    className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition-all" title="Approve"
+                                  >
+                                    <Check size={14} strokeWidth={3} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRequestStatus(req.id, 'rejected')}
+                                    className="p-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500 hover:text-black transition-all" title="Decline"
+                                  >
+                                    <Ban size={14} strokeWidth={3} />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'history' && (
+              <>
+                 <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/30">
+                  <div className="flex items-center gap-3">
+                    <History className="text-amber-500" size={20} />
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">Sales History</h2>
+                  </div>
+                </div>
+
+                {loadingSellerData ? (
+                   <div className="py-24 flex flex-col items-center gap-4">
+                     <Loader2 className="animate-spin text-amber-500" size={32} />
+                   </div>
+                ) : saleHistory.length === 0 ? (
+                  <div className="py-24 text-center">
+                    <p className="text-gray-500 text-sm font-medium uppercase tracking-widest">No sales records found</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="text-left border-b border-white/5">
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Buyer</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Bot Sold</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Price</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {saleHistory.map(item => (
+                          <tr key={item.id} className="hover:bg-white/[0.02]">
+                            <td className="px-8 py-5 font-black text-white">{item.buyerName}</td>
+                            <td className="px-8 py-5 font-bold text-gray-400">{item.botName}</td>
+                            <td className="px-8 py-5 font-mono text-green-500 font-black">+${item.price}</td>
+                            <td className="px-8 py-5 text-zinc-500 font-mono italic">
+                              {new Date(item.date).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -244,7 +526,7 @@ const Bots = () => {
                     <div className="p-2 bg-amber-500/10 rounded-lg">
                       <Cpu className="text-amber-500" size={24} />
                     </div>
-                    <h2 className="text-xl font-black uppercase tracking-tight">System Deployment</h2>
+                    <h2 className="text-xl font-black uppercase tracking-tight">Add New Bot</h2>
                   </div>
                   <button onClick={closeAddModal} className="text-gray-500 hover:text-white transition-colors"><X size={24} /></button>
                 </div>
@@ -258,7 +540,7 @@ const Bots = () => {
                 <form onSubmit={handleCreateBot} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Target Account</label>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Account</label>
                       <select
                         value={selectedAccountId}
                         onChange={e => setSelectedAccountId(Number(e.target.value))}
@@ -271,7 +553,7 @@ const Bots = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Bot Algorithm</label>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Choose Bot Model</label>
                       <select
                         value={selectedBotId}
                         onChange={e => setSelectedBotId(Number(e.target.value))}
@@ -320,7 +602,7 @@ const Bots = () => {
                     disabled={creating}
                     className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2"
                   >
-                    {creating ? <Loader2 className="animate-spin" size={20} /> : 'INITIALIZE DEPLOYMENT'}
+                    {creating ? <Loader2 className="animate-spin" size={20} /> : 'CONFIRM AND ADD BOT'}
                   </button>
                 </form>
               </div>
@@ -347,6 +629,78 @@ const Bots = () => {
               >
                 I UNDERSTAND
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resale Modal */}
+        {isResaleModalOpen && resaleBot && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-zinc-950 border border-white/10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative overflow-hidden">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500/10 rounded-lg">
+                      <DollarSign className="text-green-500" size={24} />
+                    </div>
+                    <h2 className="text-xl font-black uppercase tracking-tight">Sell Your Bot</h2>
+                  </div>
+                  <button onClick={() => setIsResaleModalOpen(false)} className="text-gray-500 hover:text-white"><X size={24} /></button>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-sm text-gray-400 mb-2">You are putting your <span className="text-white font-bold">{resaleBot.botName}</span> bot up for sale in the shop.</p>
+                  <p className="text-[10px] text-gray-500 uppercase">Original Price: ${resaleBot.price}</p>
+                </div>
+
+                <form onSubmit={handleResell} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Set Your Price (USD)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={resalePrice}
+                        onChange={e => setResalePrice(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-10 pr-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-green-500/50 outline-none text-sm font-bold text-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={reselling}
+                    className="w-full py-4 bg-green-600 hover:bg-green-500 text-black font-black rounded-2xl transition-all shadow-lg shadow-green-500/10 flex items-center justify-center gap-2"
+                  >
+                    {reselling ? <Loader2 className="animate-spin" size={20} /> : 'PUT UP FOR SALE'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Slip Review Modal */}
+        {selectedSlip && (
+          <div 
+             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300"
+             onClick={() => setSelectedSlip(null)}
+          >
+            <div className="relative max-w-4xl w-full">
+               <button 
+                 className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black uppercase tracking-widest text-[10px] hover:text-amber-500 transition-colors"
+                 onClick={() => setSelectedSlip(null)}
+               >
+                 Close <X size={20} />
+               </button>
+               <img 
+                 src={selectedSlip} 
+                 alt="Payment Slip" 
+                 className="w-full h-auto rounded-[2rem] border border-white/10 shadow-2xl" 
+               />
             </div>
           </div>
         )}

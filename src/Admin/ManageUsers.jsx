@@ -94,7 +94,7 @@ const ManageUsers = () => {
       <div className="min-h-[400px] flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-amber-500/20 border-t-amber-500"></div>
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 animate-pulse">
-          Decrypting Registry...
+          Loading Users...
         </p>
       </div>
     );
@@ -109,11 +109,11 @@ const ManageUsers = () => {
             <div className="flex items-center gap-2 mb-2">
               <ShieldCheck size={14} className="text-amber-500" />
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
-                System Security // User Access Registry
+                Admin // User Management
               </span>
             </div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
-              Operator <span className="text-amber-500">Registry</span>
+              User <span className="text-amber-500">Management</span>
             </h1>
           </div>
 
@@ -140,7 +140,7 @@ const ManageUsers = () => {
               />
               <input
                 type="text"
-                placeholder="SEARCH OPERATOR ID OR EMAIL..."
+                placeholder="SEARCH NAME OR EMAIL..."
                 value={searchTerm}
                 onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-12 pr-6 py-3 w-80 bg-white/5 border border-white/5 rounded-2xl focus:border-amber-500/50 outline-none text-xs font-bold text-white uppercase tracking-widest transition-all"
@@ -176,16 +176,19 @@ const ManageUsers = () => {
                     Select
                   </th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                    Identity
+                    User Details
                   </th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                    Access Status
+                    Status
                   </th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                    KYC Verify
+                    KYC
+                  </th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    Performance
                   </th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">
-                    System Actions
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -246,6 +249,16 @@ const ManageUsers = () => {
                       </div>
                     </td>
                     <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <p className="text-xs font-black text-amber-500 uppercase tracking-tighter">
+                          {user.totalSells || 0} Sales
+                        </p>
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase">
+                          ${(user.totalRevenue || 0).toLocaleString()} Revenue
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
                       <div className="flex items-center gap-2 justify-end">
                         <button
                           className="p-2.5 bg-zinc-900 rounded-xl hover:text-amber-500 border border-transparent hover:border-amber-500/30 transition-all"
@@ -259,7 +272,7 @@ const ManageUsers = () => {
                             onClick={() => handleApprove(user.id)}
                             className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/10"
                           >
-                            Authorize
+                            Approve User
                           </button>
                         )}
                         <button

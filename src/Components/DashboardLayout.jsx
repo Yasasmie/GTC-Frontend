@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
   Check,
+  ShoppingBag,
 } from 'lucide-react';
 import { auth } from '../../firebase'; // wait, it's ../../firebase for DashboardLayout? Yes, firebase is at src/../firebase.js
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -91,6 +92,7 @@ const DashboardLayout = () => {
     { name: 'My Profile', icon: User, path: '/dashboard/profile' },
     { name: 'My Accounts', icon: Wallet, path: '/dashboard/accounts' },
     { name: 'My Bots', icon: Bot, path: '/dashboard/bots' },
+    { name: 'Bot Shop', icon: ShoppingBag, path: '/dashboard/marketplace' },
     { name: 'Courses', icon: FileText, path: '/dashboard/courses' },
     {
       name: 'Plans and Billing',
@@ -244,7 +246,7 @@ const DashboardLayout = () => {
         {/* Dynamic Page Content */}
         <main className="p-4 md:p-8 overflow-y-auto flex-1 bg-black">
           <div className="max-w-7xl mx-auto">
-             <Outlet />
+             <Outlet context={{ currentUser: user }} />
           </div>
         </main>
       </div>
