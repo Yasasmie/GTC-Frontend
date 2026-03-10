@@ -33,6 +33,22 @@ import {
   Shield
 } from 'lucide-react';
 
+const isPdfFile = value =>
+  typeof value === 'string' &&
+  (value.startsWith('data:application/pdf') || value.toLowerCase().endsWith('.pdf'));
+
+const requestStatusLabel = status => {
+  if (status === 'pending_admin') return 'waiting for admin';
+  return status;
+};
+
+const WHATSAPP_NUMBER = '94703755312';
+
+const openWhatsAppRequest = message => {
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 const Bots = () => {
   const { currentUser: firebaseUser, userProfile } = useOutletContext();
   const [accounts, setAccounts] = useState([]);
@@ -51,6 +67,7 @@ const Bots = () => {
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [selectedBotId, setSelectedBotId] = useState('');
   const [signedAgreementFile, setSignedAgreementFile] = useState(null);
+  const [paymentSlipFile, setPaymentSlipFile] = useState(null);
 
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
@@ -67,6 +84,8 @@ const Bots = () => {
   const [saleHistory, setSaleHistory] = useState([]);
   const [loadingSellerData, setLoadingSellerData] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
+  const [selectedApprovalRequest, setSelectedApprovalRequest] = useState(null);
+  const [adminPaymentSlip, setAdminPaymentSlip] = useState(null);
 
   const isReferredUser = !!userProfile?.referredBy;
 
@@ -131,6 +150,7 @@ const Bots = () => {
     setSelectedAccountId(accounts[0]?.id || '');
     setSelectedBotId(botsCatalog[0]?.id || '');
     setSignedAgreementFile(null);
+    setPaymentSlipFile(null);
     setIsAddModalOpen(true);
   };
 
@@ -162,6 +182,10 @@ const Bots = () => {
       setError('Please upload the signed service agreement.');
       return;
     }
+    if (!paymentSlipFile) {
+      setError('Please upload the admin payment slip.');
+      return;
+    }
 
     const fakeUrl = `/signed-agreements/${signedAgreementFile.name}`;
 
@@ -171,14 +195,39 @@ const Bots = () => {
         brokerAccountId: Number(selectedAccountId),
         botId: Number(selectedBotId),
         signedAgreementUrl: fakeUrl,
+        paymentSlip: paymentSlipFile,
       });
       setUserBots(prev => [...prev, created]);
       setIsAddModalOpen(false);
+      const selectedAccount = accounts.find(acc => Number(acc.id) === Number(selectedAccountId));
+      const selectedBot = botsCatalog.find(bot => Number(bot.id) === Number(selectedBotId));
+      openWhatsAppRequest(
+        [
+          'Direct Bot Request',
+          `Client: ${userRecord?.name || firebaseUser?.displayName || firebaseUser?.email || 'Unknown'}`,
+          `Email: ${firebaseUser?.email || 'N/A'}`,
+          `Bot: ${selectedBot?.name || created.botName}`,
+          `Broker: ${selectedAccount?.broker || created.broker || 'N/A'}`,
+          `Account Number: ${selectedAccount?.accountNumber || created.accountNumber || 'N/A'}`,
+          `Price: $${selectedBot?.price ?? created.price ?? 0}`,
+          'Payment slip uploaded in system.',
+        ].join('\n')
+      );
     } catch (err) {
       setError('Deployment failed. Internal server error.');
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleUploadAsBase64 = (file, setter) => {
+    if (!file) {
+      setter(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setter(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleResell = async (e) => {
@@ -212,15 +261,28 @@ const Bots = () => {
     }
   };
 
-  const handleRequestStatus = async (requestId, status) => {
+  const handleRequestStatus = async (requestId, status, slip = null) => {
     try {
-      await updateResaleRequestStatus(requestId, status);
+      await updateResaleRequestStatus(requestId, status, slip);
       await loadSellerPanelData();
       const updatedBots = await getUserBots(firebaseUser.uid);
       setUserBots(updatedBots);
     } catch (err) {
       alert(err.message || 'Failed to update request');
     }
+  };
+
+  const openApproveModal = request => {
+    setSelectedApprovalRequest(request);
+    setAdminPaymentSlip(null);
+  };
+
+  const handleApproveWithSlip = async e => {
+    e.preventDefault();
+    if (!selectedApprovalRequest || !adminPaymentSlip) return;
+    await handleRequestStatus(selectedApprovalRequest.id, 'approved', adminPaymentSlip);
+    setSelectedApprovalRequest(null);
+    setAdminPaymentSlip(null);
   };
 
   const isGlobalLoading = loadingAccounts || loadingBots || loadingUser;
@@ -342,6 +404,7 @@ const Bots = () => {
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Account</th>
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Bot Model</th>
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Price Paid</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Purchase Info</th>
                           {!isReferredUser && <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Selling Status</th>}
                           <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
                         </tr>
@@ -356,6 +419,25 @@ const Bots = () => {
                             </td>
                             <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
                             <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
+                            <td className="px-8 py-5">
+                              {b.boughtFrom ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                                    Purchased From Reseller
+                                  </span>
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                    Seller: {b.boughtFrom}
+                                  </p>
+                                  {b.amountInAsset != null && (
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
+                                      Asset Amount: {b.amountInAsset}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-black text-zinc-600 uppercase">Direct Purchase</span>
+                              )}
+                            </td>
                             {!isReferredUser && (
                               <td className="px-8 py-5">
                                 {b.isForResale ? (
@@ -426,8 +508,12 @@ const Bots = () => {
                         <tr className="text-left border-b border-white/5">
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Buyer</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Bot</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Broker</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Account Number</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Asset Amount</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Amount</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Payment Slip</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Admin Price</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Status</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest text-right">Action</th>
                         </tr>
@@ -437,6 +523,9 @@ const Bots = () => {
                           <tr key={req.id} className="hover:bg-white/[0.02]">
                             <td className="px-8 py-5 font-black text-white lg:whitespace-nowrap">{req.buyerName}</td>
                             <td className="px-8 py-5 font-bold text-gray-400">{req.botName}</td>
+                            <td className="px-8 py-5 font-bold text-gray-400">{req.broker}</td>
+                            <td className="px-8 py-5 font-mono text-zinc-400">{req.accountNumber}</td>
+                            <td className="px-8 py-5 font-mono text-blue-400">{req.amountInAsset}</td>
                             <td className="px-8 py-5 font-mono text-amber-500">${req.price}</td>
                             <td className="px-8 py-5">
                               <button
@@ -447,18 +536,26 @@ const Bots = () => {
                               </button>
                             </td>
                             <td className="px-8 py-5">
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                                  Admin Price
+                                </p>
+                                <p className="font-mono text-emerald-500">${req.adminPayablePrice}</p>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5">
                               <span className={`px-2 py-0.5 rounded-full font-black uppercase text-[8px] ${req.status === 'approved' ? 'bg-green-500/10 text-green-500' :
                                   req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
                                     'bg-amber-500/10 text-amber-500'
                                 }`}>
-                                {req.status}
+                                {requestStatusLabel(req.status)}
                               </span>
                             </td>
                             <td className="px-8 py-5 text-right">
                               {req.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-2">
                                   <button
-                                    onClick={() => handleRequestStatus(req.id, 'approved')}
+                                    onClick={() => openApproveModal(req)}
                                     className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition-all" title="Approve"
                                   >
                                     <Check size={14} strokeWidth={3} />
@@ -505,6 +602,7 @@ const Bots = () => {
                         <tr className="text-left border-b border-white/5">
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Buyer</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Bot Sold</th>
+                          <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Account Number</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Price</th>
                           <th className="px-8 py-5 font-black text-gray-500 uppercase tracking-widest">Date</th>
                         </tr>
@@ -514,6 +612,7 @@ const Bots = () => {
                           <tr key={item.id} className="hover:bg-white/[0.02]">
                             <td className="px-8 py-5 font-black text-white">{item.buyerName}</td>
                             <td className="px-8 py-5 font-bold text-gray-400">{item.botName}</td>
+                            <td className="px-8 py-5 text-zinc-500 font-mono">{item.accountNumber}</td>
                             <td className="px-8 py-5 font-mono text-green-500 font-black">+${item.price}</td>
                             <td className="px-8 py-5 text-zinc-500 font-mono italic">
                               {new Date(item.date).toLocaleDateString()}
@@ -608,6 +707,21 @@ const Bots = () => {
                         </span>
                       </div>
                     </div>
+
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setPaymentSlipFile)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                        <Upload size={18} className="text-gray-500" />
+                        <span className="text-xs font-bold text-gray-500">
+                          {paymentSlipFile ? 'Admin Payment Slip Uploaded' : 'Upload Admin Payment Slip'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -696,6 +810,60 @@ const Bots = () => {
           </div>
         )}
 
+        {selectedApprovalRequest && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-zinc-950 border border-white/10 rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tight text-white">Approve Resale</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-2">
+                      Upload the admin payment slip for the actual bot price before releasing the bot.
+                    </p>
+                  </div>
+                  <button onClick={() => setSelectedApprovalRequest(null)} className="text-gray-500 hover:text-white">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleApproveWithSlip} className="space-y-6">
+                  <div className="rounded-3xl border border-white/5 bg-black p-5 space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bot</p>
+                    <p className="text-lg font-black uppercase text-white">{selectedApprovalRequest.botName}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                      Client pays ${selectedApprovalRequest.price} | Admin payable (65%) ${selectedApprovalRequest.adminPayablePrice}
+                    </p>
+                  </div>
+
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setAdminPaymentSlip)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      required
+                    />
+                    <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                      <Upload size={18} className="text-gray-500" />
+                      <span className="text-xs font-bold text-gray-500">
+                        {adminPaymentSlip ? 'Admin Price Slip Uploaded' : 'Upload Admin Price Payment Slip'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!adminPaymentSlip}
+                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-2xl transition-all disabled:opacity-30"
+                  >
+                    Approve And Release Bot
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Slip Review Modal */}
         {selectedSlip && (
           <div
@@ -709,11 +877,19 @@ const Bots = () => {
               >
                 Close <X size={20} />
               </button>
-              <img
-                src={selectedSlip}
-                alt="Payment Slip"
-                className="w-full h-auto rounded-[2rem] border border-white/10 shadow-2xl"
-              />
+              {isPdfFile(selectedSlip) ? (
+                <iframe
+                  title="Payment Slip"
+                  src={selectedSlip}
+                  className="w-full h-[80vh] rounded-[2rem] border border-white/10 shadow-2xl bg-white"
+                />
+              ) : (
+                <img
+                  src={selectedSlip}
+                  alt="Payment Slip"
+                  className="w-full h-auto rounded-[2rem] border border-white/10 shadow-2xl"
+                />
+              )}
             </div>
           </div>
         )}

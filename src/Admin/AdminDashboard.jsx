@@ -5,63 +5,87 @@ import {
   DollarSign, 
   BarChart3, 
   Bell, 
-  TrendingUp, 
+  TrendingUp,
   Zap, 
   ShieldCheck, 
   ArrowUpRight,
   Activity
 } from 'lucide-react';
+import { adminListUsers, getBotRequests, getAdminDashboardPayments } from '../api';
 
 const AdminDashboard = () => {
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [paymentData, setPaymentData] = useState(null);
   const [stats, setStats] = useState({
-    totalPackages: 9,
-    totalRevenue: 320.00,
-    totalUsers: 15,
-    activeNews: 3
+    totalPackages: 0,
+    totalRevenue: 0,
+    totalUsers: 0,
+    activeNews: 0
   });
 
-  const [recentEarnings] = useState([
-    { rank: 1, name: 'Divya Patel', packageName: 'Gold Scalper V2', amount: '$200.00', company: 'NordFX' },
-    { rank: 2, name: 'Kishore Kumar', packageName: 'Hedge Master', amount: '$150.00', company: 'Exness' },
-    { rank: 3, name: 'Priya Sharma', packageName: 'Gold Scalper V2', amount: '$120.00', company: 'IC Markets' },
-    { rank: 4, name: 'Ramesh Kumar', packageName: 'Trend Pro', amount: '$180.00', company: 'NordFX' },
-    { rank: 5, name: 'Sita Devi', packageName: 'Gold Scalper V1', amount: '$95.00', company: 'Exness' }
-  ]);
+  const [recentEarnings, setRecentEarnings] = useState([]);
 
-  const [news] = useState([
-    {
-      id: 1,
-      title: 'XAUUSD Volatility Alert',
-      description: 'Increased spreads detected on major liquidity providers. Adjusting bot slippage parameters.',
-      date: '2 hours ago',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'Infrastructure Scale-up',
-      description: 'Deployed 4 new AWS instances to handle high-frequency trading latency.',
-      date: '1 day ago',
-      priority: 'normal'
-    },
-    {
-      id: 3,
-      title: 'KYC Protocol v4',
-      description: 'Automated identity verification now integrated with global sanctions list.',
-      date: '3 days ago',
-      priority: 'normal'
-    }
-  ]);
+  const [news, setNews] = useState([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        totalRevenue: Number((prev.totalRevenue + Math.random() * 2).toFixed(2))
-      }));
-    }, 3000);
+    const loadDashboard = async () => {
+      try {
+        const [users, botRequests, payments] = await Promise.all([
+          adminListUsers(),
+          getBotRequests(),
+          getAdminDashboardPayments(),
+        ]);
+        setPaymentData(payments);
+        setSelectedMonth(payments.currentMonth || '');
 
-    return () => clearInterval(interval);
+        setStats({
+          totalPackages: botRequests.filter(item => item.status === 'approved').length,
+          totalRevenue: Number(payments.summary.adminPaymentsTotal || 0),
+          totalUsers: users.length,
+          activeNews: payments.commissionSubmissions.length,
+        });
+
+        setRecentEarnings(
+          [...payments.adminPurchases]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 5)
+            .map((item, index) => ({
+              rank: index + 1,
+              name: item.userName || 'Unknown',
+              packageName: item.botName,
+              amount: `$${Number(item.amount || 0).toFixed(2)}`,
+              company: item.broker || 'N/A',
+            }))
+        );
+
+        setNews([
+          {
+            id: 1,
+            title: 'Admin Bot Payments',
+            description: `${payments.adminPurchases.length} direct platform payment slips submitted.`,
+            date: 'Live',
+            priority: 'normal',
+          },
+          {
+            id: 2,
+            title: 'Resale Approval Queue',
+            description: `${payments.commissionSubmissions.length} commission submissions forwarded by resellers.`,
+            date: 'Live',
+            priority: 'high',
+          },
+        ]);
+      } catch (err) {
+        console.error('Failed to load admin dashboard', err);
+      }
+    };
+
+    loadDashboard();
   }, []);
+
+  const selectedMonthLabel =
+    paymentData?.monthOptions?.find(option => option.value === selectedMonth)?.label ||
+    'Current Month';
+  const monthlyAdminPayments = paymentData?.monthly?.adminPayments?.[selectedMonth] || 0;
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8 font-sans selection:bg-amber-500 selection:text-black">
@@ -92,12 +116,28 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats Grid */}
+        {paymentData?.monthOptions?.length > 0 && (
+          <div className="flex justify-end mb-6">
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm font-bold text-white outline-none focus:border-amber-500/40"
+            >
+              {paymentData.monthOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Active Deployments', val: stats.totalPackages, icon: Cpu, color: 'text-amber-500' },
-            { label: 'Platform Revenue', val: `$${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-500' },
+            { label: `Admin Income (${selectedMonthLabel})`, val: `$${Number(monthlyAdminPayments).toLocaleString()}`, icon: DollarSign, color: 'text-emerald-500' },
             { label: 'Total Clients', val: stats.totalUsers, icon: Users, color: 'text-blue-500' },
-            { label: 'Alert Signals', val: stats.activeNews, icon: Bell, color: 'text-rose-500' },
+            { label: 'Pending Approvals', val: stats.activeNews, icon: Bell, color: 'text-rose-500' },
           ].map((item, i) => (
             <div key={i} className="bg-zinc-950 border border-white/5 p-6 rounded-[2rem] hover:border-white/10 transition-colors group">
               <div className="flex justify-between items-start mb-4">
@@ -111,6 +151,39 @@ const AdminDashboard = () => {
             </div>
           ))}
         </div>
+
+        {paymentData?.monthOptions?.length > 0 && (
+          <div className="bg-zinc-950 border border-white/5 rounded-[2rem] overflow-hidden mb-8">
+            <div className="p-6 border-b border-white/5">
+              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                Previous Months
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-zinc-600 border-b border-white/5">
+                    {['Month', 'Admin Income'].map(item => (
+                      <th key={item} className="p-4 text-[10px] font-black uppercase tracking-widest">
+                        {item}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {paymentData.monthOptions.map(option => (
+                    <tr key={option.value} className="hover:bg-white/[0.02]">
+                      <td className="p-4 font-bold text-white">{option.label}</td>
+                      <td className="p-4 font-mono text-amber-500">
+                        ${(paymentData.monthly.adminPayments?.[option.value] || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Main Intelligence Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

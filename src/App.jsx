@@ -31,6 +31,7 @@ import AdminCourses from './Admin/AdminCourses';
 import ApplyCourses from './Admin/ApplyCourse';
 import UserBotsDetail from './Admin/UserBotsDetail';
 import ResaleHistory from './Admin/ResaleHistory';
+import ResaleApprovals from './Admin/ResaleApprovals';
 
 import { getUserByUid } from './api';
 
@@ -179,10 +180,12 @@ function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<ManageUsers />} />
+          <Route path="referrals" element={<ManageUsers />} />
           <Route path="users/:id/bots" element={<UserBotsDetail />} />
           <Route path="kyc" element={<KycRequests />} />
           <Route path="bots" element={<ManageBots />} />
           <Route path="bot-requests" element={<BotRequests />} />
+          <Route path="resale-approvals" element={<ResaleApprovals />} />
           <Route path="careers" element={<AdminCareers />} />
           <Route path="courses" element={<AdminCourses />} />
           <Route path="apply-courses" element={<ApplyCourses />} />

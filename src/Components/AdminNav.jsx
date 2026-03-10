@@ -57,13 +57,14 @@ const AdminNav = () => {
   const userId = user?.uid?.substring(0, 8).toUpperCase() || 'SYS-ALPHA';
 
   const navItems = [
-    { name: 'Command Center', icon: LayoutDashboard, path: '/admin/dashboard' },
-    { name: 'User Registry', icon: Users, path: '/admin/users' },
-    { name: 'Career Data', icon: FileText, path: '/admin/careers' },
-    { name: 'Bot Algorithms', icon: Bot, path: '/admin/bots' },
-    { name: 'Execution Requests', icon: Activity, path: '/admin/bot-requests' },
-    { name: 'Identity (KYC)', icon: FileCheck, path: '/admin/kyc' },
-    { name: 'Add Courses', icon: FileCheck, path: '/admin/courses' },
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { name: 'User Management', icon: Users, path: '/admin/users' },
+    { name: 'Careers', icon: FileText, path: '/admin/careers' },
+    { name: 'Manage Bots', icon: Bot, path: '/admin/bots' },
+    { name: 'Bot Requests', icon: Activity, path: '/admin/bot-requests' },
+    { name: 'Resale Approvals', icon: Package, path: '/admin/resale-approvals' },
+    { name: 'KYC Requests', icon: FileCheck, path: '/admin/kyc' },
+    { name: 'Courses', icon: FileCheck, path: '/admin/courses' },
      {name: 'Apply Courses', icon: FileCheck, path: '/admin/apply-courses' },
     { 
       name: 'Transactions', 
@@ -75,7 +76,7 @@ const AdminNav = () => {
         { name: 'Marketplace History', path: '/admin/resale-history' }
       ]
     },
-    { name: 'Network Tree', icon: Shield, path: '/admin/referrals' }
+    { name: 'Referral Network', icon: Shield, path: '/admin/referrals' }
   ];
 
   return (

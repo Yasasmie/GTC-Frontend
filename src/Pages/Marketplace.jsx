@@ -17,6 +17,13 @@ import {
   Upload,
 } from 'lucide-react';
 
+const WHATSAPP_NUMBER = '94703755312';
+
+const openWhatsAppRequest = message => {
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 const Marketplace = () => {
   const { currentUser: firebaseUser } = useOutletContext();
   const [listings, setListings] = useState([]);
@@ -27,6 +34,9 @@ const Marketplace = () => {
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [broker, setBroker] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [amountInAsset, setAmountInAsset] = useState('');
   const [paymentSlip, setPaymentSlip] = useState(null);
   const [purchasing, setPurchasing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -40,7 +50,11 @@ const Marketplace = () => {
         if (firebaseUser) {
           const accs = await getUserAccounts(firebaseUser.uid);
           setAccounts(accs);
-          if (accs.length > 0) setSelectedAccountId(accs[0].id);
+          if (accs.length > 0) {
+            setSelectedAccountId(String(accs[0].id));
+            setBroker(accs[0].broker || '');
+            setAccountNumber(accs[0].accountNumber || '');
+          }
         }
       } catch (err) {
         setError('Connection failed. Market data unavailable.');
@@ -59,11 +73,21 @@ const Marketplace = () => {
     setSelectedListing(listing);
     setPurchaseModalOpen(true);
     setSuccessMessage('');
+    setAmountInAsset('');
+    if (accounts.length > 0) {
+      setSelectedAccountId(String(accounts[0].id));
+      setBroker(accounts[0].broker || '');
+      setAccountNumber(accounts[0].accountNumber || '');
+    } else {
+      setSelectedAccountId('');
+      setBroker('');
+      setAccountNumber('');
+    }
   };
 
   const handlePurchase = async (e) => {
     e.preventDefault();
-    if (!selectedListing || !selectedAccountId || !firebaseUser) return;
+    if (!selectedListing || !broker || !accountNumber || !amountInAsset || !firebaseUser) return;
 
     setPurchasing(true);
     setError('');
@@ -72,15 +96,32 @@ const Marketplace = () => {
       await submitResaleRequest({
         uid: firebaseUser.uid,
         botInstanceId: selectedListing.id,
-        brokerAccountId: Number(selectedAccountId),
+        broker,
+        accountNumber,
+        amountInAsset: Number(amountInAsset),
         paymentSlip: paymentSlip,
       });
+      openWhatsAppRequest(
+        [
+          'Resale Bot Request',
+          `Customer: ${firebaseUser.displayName || firebaseUser.email || 'Unknown'}`,
+          `Email: ${firebaseUser.email || 'N/A'}`,
+          `Bot: ${selectedListing.botName}`,
+          `Reseller: ${selectedListing.sellerName}`,
+          `Broker: ${broker}`,
+          `Account Number: ${accountNumber}`,
+          `Amount In Asset: ${amountInAsset}`,
+          `Resale Price: $${selectedListing.resalePrice}`,
+          'Payment slip uploaded in system.',
+        ].join('\n')
+      );
       setSuccessMessage(`Order Placed: Your request for ${selectedListing.botName} has been sent to the seller.`);
       
       setTimeout(() => {
         setPurchaseModalOpen(false);
         setSelectedListing(null);
         setPaymentSlip(null);
+        setAmountInAsset('');
         setSuccessMessage('');
       }, 4000);
     } catch (err) {
@@ -98,6 +139,15 @@ const Marketplace = () => {
         setPaymentSlip(reader.result); // Base64 string
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAccountSelect = value => {
+    setSelectedAccountId(value);
+    const account = accounts.find(acc => String(acc.id) === String(value));
+    if (account) {
+      setBroker(account.broker || '');
+      setAccountNumber(account.accountNumber || '');
     }
   };
 
@@ -256,25 +306,76 @@ const Marketplace = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Broker Account</label>
-                        {accounts.length > 0 ? (
-                          <select
-                            value={selectedAccountId}
-                            onChange={e => setSelectedAccountId(e.target.value)}
-                            required
-                            className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all appearance-none"
-                          >
-                            {accounts.map(acc => (
-                              <option key={acc.id} value={acc.id}>{acc.broker} - {acc.accountNumber} ({acc.accountType})</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl flex items-center justify-between">
-                            <span className="text-[10px] font-black text-red-500 uppercase">No active broker accounts found</span>
-                            <button type="button" className="text-[9px] font-black text-white bg-white/10 px-3 py-1 rounded-lg uppercase">Connect</button>
-                          </div>
-                        )}
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                        Use Saved Account (Optional)
+                      </label>
+                      {accounts.length > 0 ? (
+                        <select
+                          value={selectedAccountId}
+                          onChange={e => handleAccountSelect(e.target.value)}
+                          className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all appearance-none"
+                        >
+                          {accounts.map(acc => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.broker} - {acc.accountNumber} ({acc.accountType})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-4 bg-zinc-900 border border-white/10 rounded-2xl text-[10px] font-black text-zinc-500 uppercase">
+                          No saved accounts found. Enter broker and account details manually below.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                          Broker
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={broker}
+                          onChange={e => setBroker(e.target.value)}
+                          placeholder="Exness"
+                          className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all"
+                        />
                       </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                          Account Number
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={accountNumber}
+                          onChange={e => setAccountNumber(e.target.value)}
+                          placeholder="12345678"
+                          className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                        Amount In Asset
+                      </label>
+                      <div className="relative">
+                        <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                          value={amountInAsset}
+                          onChange={e => setAmountInAsset(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-11 pr-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Upload Payment Slip</label>
                       <div className="relative group">
@@ -304,7 +405,7 @@ const Marketplace = () => {
 
                       <button
                         type="submit"
-                        disabled={purchasing || accounts.length === 0 || !paymentSlip}
+                        disabled={purchasing || !paymentSlip || !broker || !accountNumber || !amountInAsset}
                         className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
                       >
                         {purchasing ? <Loader2 className="animate-spin" size={20} /> : 'SUBMIT PURCHASE REQUEST'}

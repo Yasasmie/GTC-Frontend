@@ -11,23 +11,26 @@ import {
   TrendingUp,
   Cpu,
   ShieldCheck,
-  FileText
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import { getUserProfile } from '../api';
+import { getUserDashboardPayments } from '../api';
 
 const Dashboard = () => {
   const { currentUser, userProfile } = useOutletContext();
   const [copied, setCopied] = useState(false);
   const [earnings, setEarnings] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [dashboardPayments, setDashboardPayments] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [stats, setStats] = useState({
-    currentPackageAmount: 50.00,
-    currentPackageName: 'Gold Tier Package',
-    accountsCount: 1,
     activePackagesCount: 0,
     totalSells: 0,
     totalRevenue: 0,
+    adminPaymentsTotal: 0,
+    clientPaymentsTotal: 0,
+    commissionTotal: 0,
   });
 
   const isReferredUser = !!userProfile?.referredBy;
@@ -55,6 +58,64 @@ const Dashboard = () => {
       }));
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    const loadPaymentData = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const data = await getUserDashboardPayments(currentUser.uid);
+        setDashboardPayments(data);
+        setSelectedMonth(data.currentMonth || '');
+        setStats(prev => ({
+          ...prev,
+          adminPaymentsTotal: data.summary.adminPaymentsTotal || 0,
+          clientPaymentsTotal:
+            data.summary.clientPaymentsTotal || data.summary.customerPaymentsTotal || 0,
+          commissionTotal: data.summary.commissionTotal || 0,
+        }));
+
+        setEarnings(
+          (data.commissionSubmissions || []).map(item => ({
+            id: item.id,
+            level: 'COM',
+            userAccount: item.accountNumber,
+            amount: Number(item.commissionAmount || 0),
+            date: new Date(item.createdAt).toLocaleDateString(),
+          }))
+        );
+
+        const paymentRows = [
+          ...(data.adminPurchases || []).map(item => ({
+            id: item.id,
+            type: 'ADMIN PAYMENT',
+            amount: Number(item.amount || 0),
+            description: item.botName,
+            date: new Date(item.createdAt).toLocaleDateString(),
+          })),
+          ...((data.clientPayments || data.customerPayments || []).map(item => ({
+            id: item.id,
+            type: item.category === 'resale_client_payment' ? 'CLIENT PAYMENT' : 'PURCHASE PAYMENT',
+            amount: Number(item.amount || 0),
+            description: item.botName,
+            date: new Date(item.createdAt).toLocaleDateString(),
+          }))),
+        ];
+
+        setTransactions(paymentRows);
+      } catch (err) {
+        console.error('Failed to load dashboard payments', err);
+      }
+    };
+
+    loadPaymentData();
+  }, [currentUser]);
+
+  const selectedMonthLabel =
+    dashboardPayments?.monthOptions?.find(option => option.value === selectedMonth)?.label ||
+    'Current Month';
+  const monthlyAdminPayments = dashboardPayments?.monthly?.adminPayments?.[selectedMonth] || 0;
+  const monthlyClientPayments = dashboardPayments?.monthly?.clientPayments?.[selectedMonth] || 0;
+  const monthlyProfit = dashboardPayments?.monthly?.profits?.[selectedMonth] || 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -98,26 +159,49 @@ const Dashboard = () => {
       )}
 
       {/* Stats Cards */}
+      {dashboardPayments?.monthOptions?.length > 0 && (
+        <div className="flex justify-end">
+          <select
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(e.target.value)}
+            className="rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm font-bold text-white outline-none focus:border-amber-500/40"
+          >
+            {dashboardPayments.monthOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {!isReferredUser ? (
           <>
             <StatCard 
-              title="Marketplace Earnings"
-              subTitle="Total Revenue"
-              value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
-              growth="Total Profit from Sales"
+              title="Client Payments"
+              subTitle={selectedMonthLabel}
+              value={`$${Number(monthlyClientPayments).toLocaleString()}`}
+              growth="Monthly Client Receipts"
               icon={<Wallet className="text-amber-500" size={24} />}
             />
             <StatCard 
-              title="Successful Sales"
-              value={stats.totalSells || 0}
-              subTitle="Bot Distribution"
-              growth="Marketplace Reach"
-              icon={<TrendingUp className="text-amber-500" size={24} />}
+              title="Commission Margin"
+              value={`$${Number(monthlyProfit).toLocaleString()}`}
+              subTitle={selectedMonthLabel}
+              growth="Client Price - Admin Price"
+              icon={<DollarSign className="text-amber-500" size={24} />}
             />
           </>
         ) : (
           <>
+            <StatCard 
+              title="Admin Payments"
+              subTitle={selectedMonthLabel}
+              value={`$${Number(monthlyAdminPayments).toLocaleString()}`}
+              growth="Monthly Payments To Admin"
+              icon={<TrendingUp className="text-amber-500" size={24} />}
+            />
             <StatCard 
               title="Financial Protection"
               subTitle="Identity Verification"
@@ -162,7 +246,7 @@ const Dashboard = () => {
                 <tbody className="divide-y divide-white/5">
                   {earnings.map((row) => (
                     <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 text-amber-500 font-bold">Lvl {row.level}</td>
+                      <td className="px-6 py-4 text-amber-500 font-bold">{row.level}</td>
                       <td className="px-6 py-4 text-gray-300">{row.userAccount}</td>
                       <td className="px-6 py-4 text-white font-mono">${row.amount.toFixed(2)}</td>
                       <td className="px-6 py-4 text-gray-500 text-xs">{row.date}</td>
@@ -201,6 +285,36 @@ const Dashboard = () => {
           )}
         </TableContainer>
       </div>
+
+      {dashboardPayments?.monthlyHistory && (
+        <TableContainer title="Previous Months" icon={<History size={20} className="text-amber-500" />}>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/5">
+                {['Month', 'Admin Payments', 'Client Payments', 'Profit'].map(h => (
+                  <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {dashboardPayments.monthOptions.map(option => (
+                <tr key={option.value} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-6 py-4 text-white font-bold">{option.label}</td>
+                  <td className="px-6 py-4 text-amber-500 font-mono">
+                    ${(dashboardPayments.monthly.adminPayments?.[option.value] || 0).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 text-emerald-500 font-mono">
+                    ${(dashboardPayments.monthly.clientPayments?.[option.value] || 0).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 text-white font-mono">
+                    ${(dashboardPayments.monthly.profits?.[option.value] || 0).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableContainer>
+      )}
     </div>
   );
 };

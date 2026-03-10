@@ -71,7 +71,7 @@ const DashboardLayout = () => {
     if (!user) return;
     try {
       await markAllNotificationsAsRead(user.uid);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications([]);
     } catch (err) {
       console.error(err);
     }
@@ -199,7 +199,7 @@ const DashboardLayout = () => {
                 <div className="p-3 border-b border-white/10 flex justify-between items-center bg-zinc-950">
                   <span className="font-bold text-sm text-white">Notifications</span>
                   <button onClick={handleMarkAllAsRead} className="text-[10px] text-amber-500 hover:text-amber-400 font-bold uppercase tracking-wider">
-                    Mark all as read
+                    Clear all
                   </button>
                 </div>
                 <div className="overflow-y-auto flex-1 p-2 space-y-2">

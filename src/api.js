@@ -57,6 +57,11 @@ export const adminApproveUser = async (id) => {
   return handleResponse(res, 'Failed to approve user');
 };
 
+export const adminGetUserNetwork = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/admin/users/${uid}/network`);
+  return handleResponse(res, 'Failed to load referral network');
+};
+
 export const adminDeleteUser = async (id) => {
   const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
     method: 'DELETE',
@@ -99,6 +104,11 @@ export const createUserBot = async (uid, data) => {
     body: JSON.stringify(data),
   });
   return handleResponse(res, 'Failed to create user bot');
+};
+
+export const getUserDashboardPayments = async uid => {
+  const res = await fetch(`${API_BASE}/api/users/${uid}/dashboard-payments`);
+  return handleResponse(res, 'Failed to load user dashboard payments');
 };
 
 // --- BOTS (ADMIN VIEW PER USER) ---
@@ -173,6 +183,11 @@ export const adminDeleteBot = async (id) => {
 export const getBotRequests = async () => {
   const res = await fetch(`${API_BASE}/api/admin/bot-requests`);
   return handleResponse(res, 'Failed to load bot requests');
+};
+
+export const getAdminDashboardPayments = async () => {
+  const res = await fetch(`${API_BASE}/api/admin/dashboard-payments`);
+  return handleResponse(res, 'Failed to load admin dashboard payments');
 };
 
 export const getBotRequestById = async (id) => {
@@ -282,10 +297,10 @@ export const markNotificationAsRead = async (uid, notifId) => {
 };
 
 export const markAllNotificationsAsRead = async (uid) => {
-  const res = await fetch(`${API_BASE}/api/users/${uid}/notifications/read-all`, {
-    method: 'PUT',
+  const res = await fetch(`${API_BASE}/api/users/${uid}/notifications`, {
+    method: 'DELETE',
   });
-  return handleResponse(res, 'Failed to mark all notifications as read');
+  return handleResponse(res, 'Failed to clear notifications');
 };
 
 // --- BOT RESALE ---
@@ -328,13 +343,20 @@ export const getSellerRequests = async (uid) => {
   return handleResponse(res, 'Failed to load purchase requests');
 };
 
-export const updateResaleRequestStatus = async (requestId, status) => {
+export const updateResaleRequestStatus = async (requestId, status, adminPaymentSlip) => {
   const res = await fetch(`${API_BASE}/api/bots/resale/requests/${requestId}/status`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, adminPaymentSlip }),
   });
   return handleResponse(res, `Failed to ${status} request`);
+};
+
+export const sendResaleRequestToAdmin = async requestId => {
+  const res = await fetch(`${API_BASE}/api/bots/resale/requests/${requestId}/send-to-admin`, {
+    method: 'POST',
+  });
+  return handleResponse(res, 'Failed to send request to admin');
 };
 
 export const getSaleHistory = async (uid) => {
@@ -345,4 +367,28 @@ export const getSaleHistory = async (uid) => {
 export const adminGetResaleHistory = async () => {
   const res = await fetch(`${API_BASE}/api/admin/resale-history`);
   return handleResponse(res, 'Failed to load global sale history');
+};
+
+export const adminGetResaleApprovals = async () => {
+  const res = await fetch(`${API_BASE}/api/admin/resale-approvals`);
+  return handleResponse(res, 'Failed to load resale approvals');
+};
+
+export const adminGetResaleApprovalById = async id => {
+  const res = await fetch(`${API_BASE}/api/admin/resale-approvals/${id}`);
+  return handleResponse(res, 'Failed to load resale approval');
+};
+
+export const adminApproveResaleApproval = async id => {
+  const res = await fetch(`${API_BASE}/api/admin/resale-approvals/${id}/approve`, {
+    method: 'PUT',
+  });
+  return handleResponse(res, 'Failed to approve resale');
+};
+
+export const adminRejectResaleApproval = async id => {
+  const res = await fetch(`${API_BASE}/api/admin/resale-approvals/${id}/reject`, {
+    method: 'PUT',
+  });
+  return handleResponse(res, 'Failed to reject resale');
 };
