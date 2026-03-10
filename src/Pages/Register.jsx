@@ -5,6 +5,8 @@ import { User, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { auth } from '../../firebase';
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  signOut,
   updateProfile,
   sendEmailVerification,
 } from 'firebase/auth';
@@ -31,35 +33,54 @@ const Register = () => {
     setLoading(true);
     setError('');
 
+    let createdUser = null;
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
+      createdUser = userCredential.user;
 
-      await updateProfile(userCredential.user, {
+      await updateProfile(createdUser, {
         displayName: `${formData.firstName} ${formData.lastName}`,
       });
 
-      // Create backend record
       await createUserRecord({
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
+        uid: createdUser.uid,
+        email: createdUser.email,
         name: `${formData.firstName} ${formData.lastName}`,
         referredBy: ref || null,
       });
 
-      await sendEmailVerification(userCredential.user, {
-        url: `${window.location.origin}/verify-email`,
-        handleCodeInApp: true,
-      });
+      try {
+        await sendEmailVerification(createdUser);
+      } catch (verificationError) {
+        console.warn('Email verification could not be sent:', verificationError);
+      }
 
-      alert('Account created! Please check your email for verification.');
-      navigate('/login', { replace: true });
+      await signOut(auth);
+      navigate('/login', {
+        replace: true,
+        state: {
+          registrationSuccess: true,
+          email: createdUser.email,
+        },
+      });
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
+      if (createdUser) {
+        try {
+          await deleteUser(createdUser);
+        } catch (deleteError) {
+          console.error('Failed to rollback created Firebase user', deleteError);
+        }
+      }
+
+      if (err?.code === 'auth/email-already-in-use') {
         setError('Email is already registered.');
+      } else if (err?.message) {
+        setError(err.message);
       } else {
         setError('Failed to create account. Try again.');
       }

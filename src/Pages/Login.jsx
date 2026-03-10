@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Chrome, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '../../firebase';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
@@ -9,10 +9,12 @@ import Footer from '../Components/Footer';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const registrationState = location.state;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,6 +62,11 @@ const Login = () => {
                 Welcome <span className="text-amber-500">Back</span>
               </h2>
               <p className="text-gray-400 mt-2 text-sm">Access your trading dashboard</p>
+              {registrationState?.registrationSuccess && (
+                <p className="text-emerald-400 text-sm mt-4 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
+                  Account created successfully. Sign in with {registrationState.email || 'your email'}.
+                </p>
+              )}
               {error && (
                 <p className="text-red-400 text-sm mt-4 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
                   {error}
