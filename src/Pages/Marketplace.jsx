@@ -25,7 +25,7 @@ const openWhatsAppRequest = message => {
 };
 
 const Marketplace = () => {
-  const { currentUser: firebaseUser } = useOutletContext();
+  const { currentUser: firebaseUser, userProfile } = useOutletContext();
   const [listings, setListings] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +40,7 @@ const Marketplace = () => {
   const [paymentSlip, setPaymentSlip] = useState(null);
   const [purchasing, setPurchasing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const isReferredUser = !!userProfile?.referredBy;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -165,30 +166,34 @@ const Marketplace = () => {
               Bot <span className="text-amber-500">Shop</span>
             </h1>
           </div>
-          <p className="text-gray-500 text-sm font-bold uppercase tracking-widest pl-12">Buy and Sell Trading Bots</p>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-widest pl-12">
+            {isReferredUser ? 'Buy Trading Bots From Your Linked Client' : 'Buy and Sell Trading Bots'}
+          </p>
         </div>
 
         {/* How it Works / Resale Guide */}
-        <div className="mb-12 bg-zinc-950 border border-white/5 rounded-[2rem] p-6">
-          <h2 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
-            <AlertCircle size={18} className="text-amber-500" />
-            How to Resell Your Bots
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
-            <div className="space-y-2">
-              <p className="font-bold text-white uppercase text-xs">1. Go to "My Bots"</p>
-              <p>Find the bot you want to sell in your personal collection.</p>
-            </div>
-            <div className="space-y-2">
-              <p className="font-bold text-white uppercase text-xs">2. Click "Sell Bot"</p>
-              <p>Set the price you want to sell it for. The bot must be approved first.</p>
-            </div>
-            <div className="space-y-2">
-              <p className="font-bold text-white uppercase text-xs">3. Approve & Earn</p>
-              <p>Review payment slips from buyers. Once you approve, you get paid and they get the bot.</p>
+        {!isReferredUser && (
+          <div className="mb-12 bg-zinc-950 border border-white/5 rounded-[2rem] p-6">
+            <h2 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
+              <AlertCircle size={18} className="text-amber-500" />
+              How to Resell Your Bots
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
+              <div className="space-y-2">
+                <p className="font-bold text-white uppercase text-xs">1. Go to "My Bots"</p>
+                <p>Find the bot you want to sell in your personal collection.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-bold text-white uppercase text-xs">2. Click "Sell Bot"</p>
+                <p>Set the price you want to sell it for. The bot must be approved first.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-bold text-white uppercase text-xs">3. Approve & Earn</p>
+                <p>Review payment slips from buyers. Once you approve, you get paid and they get the bot.</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {loading ? (
           <div className="py-20 flex flex-col items-center gap-4">

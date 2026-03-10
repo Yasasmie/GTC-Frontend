@@ -9,13 +9,14 @@ import {
   ArrowUpRight,
   History,
   TrendingUp,
-  Cpu,
   ShieldCheck,
   FileText,
-  DollarSign
+  DollarSign,
+  UserCheck,
+  BadgeCheck
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import { getUserDashboardPayments } from '../api';
+import { getUserByUid, getUserDashboardPayments } from '../api';
 
 const Dashboard = () => {
   const { currentUser, userProfile } = useOutletContext();
@@ -24,8 +25,8 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [dashboardPayments, setDashboardPayments] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [referralOwner, setReferralOwner] = useState(null);
   const [stats, setStats] = useState({
-    activePackagesCount: 0,
     totalSells: 0,
     totalRevenue: 0,
     adminPaymentsTotal: 0,
@@ -54,7 +55,6 @@ const Dashboard = () => {
         totalSells: userProfile.totalSells || 0,
         totalRevenue: userProfile.totalRevenue || 0,
         referredBy: userProfile.referredBy || null,
-        activePackagesCount: userProfile.activeBotsCount || 0,
       }));
     }
   }, [userProfile]);
@@ -110,6 +110,25 @@ const Dashboard = () => {
     loadPaymentData();
   }, [currentUser]);
 
+  useEffect(() => {
+    const loadReferralOwner = async () => {
+      if (!userProfile?.referredBy) {
+        setReferralOwner(null);
+        return;
+      }
+
+      try {
+        const owner = await getUserByUid(userProfile.referredBy);
+        setReferralOwner(owner);
+      } catch (err) {
+        console.error('Failed to load referral owner', err);
+        setReferralOwner(null);
+      }
+    };
+
+    loadReferralOwner();
+  }, [userProfile]);
+
   const selectedMonthLabel =
     dashboardPayments?.monthOptions?.find(option => option.value === selectedMonth)?.label ||
     'Current Month';
@@ -159,7 +178,7 @@ const Dashboard = () => {
       )}
 
       {/* Stats Cards */}
-      {dashboardPayments?.monthOptions?.length > 0 && (
+      {!isReferredUser && dashboardPayments?.monthOptions?.length > 0 && (
         <div className="flex justify-end">
           <select
             value={selectedMonth}
@@ -196,13 +215,6 @@ const Dashboard = () => {
         ) : (
           <>
             <StatCard 
-              title="Admin Payments"
-              subTitle={selectedMonthLabel}
-              value={`$${Number(monthlyAdminPayments).toLocaleString()}`}
-              growth="Monthly Payments To Admin"
-              icon={<TrendingUp className="text-amber-500" size={24} />}
-            />
-            <StatCard 
               title="Financial Protection"
               subTitle="Identity Verification"
               value={userProfile?.kycStatus?.toUpperCase() || 'PENDING'}
@@ -216,19 +228,19 @@ const Dashboard = () => {
               growth="Skill Development"
               icon={<FileText className="text-amber-500" size={24} />}
             />
+            <StatCard
+              title="Account Status"
+              subTitle="Client Access"
+              value={(userProfile?.status || 'pending').toUpperCase()}
+              growth="Platform Ready State"
+              icon={<BadgeCheck className="text-amber-500" size={24} />}
+            />
           </>
         )}
-        <StatCard 
-          title="Active Licenses"
-          subTitle="Owned Assets"
-          value={stats.activePackagesCount}
-          growth="System Stability: 100%"
-          icon={<Cpu className="text-amber-500" size={24} />}
-        />
       </div>
 
       {/* Tables Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className={`grid gap-8 ${isReferredUser ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
         {/* Only show earnings table for resellers */}
         {!isReferredUser && (
           <TableContainer title="Earnings Breakdown" icon={<Trophy size={20} className="text-amber-500" />}>
@@ -260,7 +272,34 @@ const Dashboard = () => {
 
         {/* Transactions Table - Always relevant for everyone */}
         <TableContainer title="Account Activity" icon={<History size={20} className="text-amber-500" />}>
-          {transactions.length === 0 ? (
+          {isReferredUser ? (
+            <div className="grid gap-6 p-10 lg:p-12 md:grid-cols-2">
+              <ProfileHighlight
+                icon={<Users size={20} className="text-amber-500" />}
+                label="Referral Owner"
+                value={referralOwner?.name || 'Unnamed Client'}
+                helper={referralOwner?.email || 'Email unavailable'}
+              />
+              <ProfileHighlight
+                icon={<UserCheck size={20} className="text-amber-500" />}
+                label="Client Code"
+                value={userProfile?.referredBy || 'N/A'}
+                helper="This account was created through that referral link."
+              />
+              <ProfileHighlight
+                icon={<ShieldCheck size={20} className="text-amber-500" />}
+                label="Identity Review"
+                value={userProfile?.kycStatus?.toUpperCase() || 'PENDING'}
+                helper="Verification updates will appear here as the review moves forward."
+              />
+              <ProfileHighlight
+                icon={<FileText size={20} className="text-amber-500" />}
+                label="Learning Access"
+                value="UNLIMITED"
+                helper="Courses remain available without monthly pricing or payment summaries."
+              />
+            </div>
+          ) : transactions.length === 0 ? (
             <EmptyState message="No activity history found" />
           ) : (
             <table className="w-full text-left border-collapse">
@@ -286,7 +325,7 @@ const Dashboard = () => {
         </TableContainer>
       </div>
 
-      {dashboardPayments?.monthlyHistory && (
+      {!isReferredUser && dashboardPayments?.monthlyHistory && (
         <TableContainer title="Previous Months" icon={<History size={20} className="text-amber-500" />}>
           <table className="w-full text-left border-collapse">
             <thead>
@@ -360,6 +399,25 @@ const EmptyState = ({ message }) => (
       <TrendingUp size={32} className="text-gray-700" />
     </div>
     <p className="text-gray-600 text-sm italic font-medium">{message}</p>
+  </div>
+);
+
+const ProfileHighlight = ({ icon, label, value, helper }) => (
+  <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-white/[0.05] to-black/40 p-7 shadow-xl">
+    <div className="mb-4 flex items-center gap-4">
+      <div className="rounded-2xl bg-amber-500/10 p-4">
+        {icon}
+      </div>
+      <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+        {label}
+      </p>
+    </div>
+    <p className="text-2xl font-black uppercase tracking-tight text-white break-words">
+      {value}
+    </p>
+    <p className="mt-3 text-base leading-7 text-gray-400 break-words">
+      {helper}
+    </p>
   </div>
 );
 
