@@ -103,12 +103,6 @@ const DashboardLayout = () => {
     { name: 'My Bots', icon: Bot, path: '/dashboard/bots' },
     { name: 'Bot Shop', icon: ShoppingBag, path: '/dashboard/marketplace' },
     { name: 'Courses', icon: FileText, path: '/dashboard/courses' },
-    ...(!isReferredUser ? [{
-      name: 'Plans and Billing',
-      icon: FileText,
-      path: '/dashboard/billing',
-      hasSub: true,
-    }] : []),
   ];
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Trader';

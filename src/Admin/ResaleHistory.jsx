@@ -33,13 +33,23 @@ const ResaleHistory = () => {
     loadHistory();
   }, []);
 
-  const filteredHistory = history.filter(item => 
-    item.botName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sellerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.buyerName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredHistory = history.filter(item => {
+    const botName = String(item.botName || '').toLowerCase();
+    const sellerName = String(item.sellerName || '').toLowerCase();
+    const buyerName = String(item.buyerName || '').toLowerCase();
+    const query = searchTerm.toLowerCase();
 
-  const totalVolume = history.reduce((sum, item) => sum + item.price, 0);
+    return (
+      botName.includes(query) ||
+      sellerName.includes(query) ||
+      buyerName.includes(query)
+    );
+  });
+
+  const totalVolume = history.reduce(
+    (sum, item) => sum + Number(item.price || 0),
+    0
+  );
 
   if (loading) {
     return (
@@ -127,35 +137,41 @@ const ResaleHistory = () => {
                     {filteredHistory.map((item) => (
                       <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group">
                         <td className="px-8 py-6 font-mono text-[10px] text-zinc-600 uppercase">
-                          #{item.id.substring(0, 12)}
+                          #{String(item.id).slice(0, 12)}
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-3">
                               <div className="p-2 bg-amber-500/10 rounded-lg">
                                  <Bot size={14} className="text-amber-500" />
                               </div>
-                              <span className="text-sm font-black text-white uppercase">{item.botName}</span>
+                              <span className="text-sm font-black text-white uppercase">
+                                {item.botName || 'Unnamed Bot'}
+                              </span>
                            </div>
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-2">
                               <User size={12} className="text-zinc-500" />
-                              <span className="text-xs font-bold text-zinc-400">{item.sellerName}</span>
+                              <span className="text-xs font-bold text-zinc-400">
+                                {item.sellerName || 'Unknown Seller'}
+                              </span>
                            </div>
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-2">
                               <User size={12} className="text-amber-500/50" />
-                              <span className="text-xs font-bold text-white">{item.buyerName}</span>
+                              <span className="text-xs font-bold text-white">
+                                {item.buyerName || 'Unknown Buyer'}
+                              </span>
                            </div>
                         </td>
                         <td className="px-8 py-6 font-mono text-emerald-500 font-black text-sm">
-                           ${item.price.toLocaleString()}
+                           ${Number(item.price || 0).toLocaleString()}
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase italic">
                               <Calendar size={12} />
-                              {new Date(item.date).toLocaleString()}
+                              {item.date ? new Date(item.date).toLocaleString() : 'N/A'}
                            </div>
                         </td>
                       </tr>

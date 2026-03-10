@@ -75,7 +75,6 @@ const Footer = () => {
               <FooterLink to="/#about">About Us</FooterLink>
               <FooterLink to="/#courses">Courses</FooterLink>
               <FooterLink to="/careers">Join Our Team</FooterLink>
-              <FooterLink to="/privacy">Privacy Policy</FooterLink>
             </ul>
           </div>
 

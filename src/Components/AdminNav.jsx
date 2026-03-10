@@ -1,9 +1,9 @@
 // src/Admin/AdminNav.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Bot, FileText, Users, Shield, Package, 
-  Menu, Search, Bell, LogOut, ChevronDown, ChevronRight, FileCheck, Activity, Terminal
+import {
+  LayoutDashboard, Bot, FileText, Users, Shield, Package,
+  Menu, Search, Bell, LogOut, FileCheck, Activity, Terminal
 } from 'lucide-react';
 import { auth } from '../../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -12,7 +12,6 @@ const AdminNav = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openDropdowns, setOpenDropdowns] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,10 +37,6 @@ const AdminNav = () => {
     }
   };
 
-  const toggleDropdown = (key) => {
-    setOpenDropdowns(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -63,19 +58,10 @@ const AdminNav = () => {
     { name: 'Manage Bots', icon: Bot, path: '/admin/bots' },
     { name: 'Bot Requests', icon: Activity, path: '/admin/bot-requests' },
     { name: 'Resale Approvals', icon: Package, path: '/admin/resale-approvals' },
+    { name: 'Resale History', icon: Package, path: '/admin/resale-history' },
     { name: 'KYC Requests', icon: FileCheck, path: '/admin/kyc' },
     { name: 'Courses', icon: FileCheck, path: '/admin/courses' },
-     {name: 'Apply Courses', icon: FileCheck, path: '/admin/apply-courses' },
-    { 
-      name: 'Transactions', 
-      icon: Package, 
-      dropdownKey: 'purchases',
-      subItems: [
-        { name: 'Pending Ledger', path: '/admin/purchases/pending' },
-        { name: 'Full History', path: '/admin/purchases/all' },
-        { name: 'Marketplace History', path: '/admin/resale-history' }
-      ]
-    },
+    { name: 'Apply Courses', icon: FileCheck, path: '/admin/apply-courses' },
     { name: 'Referral Network', icon: Shield, path: '/admin/referrals' }
   ];
 
@@ -84,8 +70,12 @@ const AdminNav = () => {
       {/* Sidebar */}
       <aside className={`bg-black border-r border-white/5 transition-all duration-500 flex flex-col ${isSidebarOpen ? 'w-72' : 'w-24'}`}>
         <div className="p-8 flex items-center gap-4">
-          <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-            <Shield className="text-black w-6 h-6" strokeWidth={2.5} />
+          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+            <img
+              src="/logo.png"
+              alt="Gold FX"
+              className="h-full w-full object-cover"
+            />
           </div>
           {isSidebarOpen && (
             <div className="overflow-hidden whitespace-nowrap">
@@ -104,59 +94,6 @@ const AdminNav = () => {
             const isActive = location.pathname === item.path;
             return (
               <div key={item.name}>
-                {item.subItems ? (
-                  <div>
-                    <button
-                      onClick={() => toggleDropdown(item.dropdownKey)}
-                      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${
-                        openDropdowns[item.dropdownKey] ? 'bg-zinc-900 text-white' : 'hover:bg-white/5'
-                      }`}
-                    >
-                      <item.icon
-                        size={20}
-                        className={
-                          openDropdowns[item.dropdownKey]
-                            ? 'text-amber-500'
-                            : 'group-hover:text-amber-500'
-                        }
-                      />
-                      {isSidebarOpen && (
-                        <div className="flex justify-between items-center w-full">
-                          <span className="font-bold text-xs uppercase tracking-widest">
-                            {item.name}
-                          </span>
-                          <ChevronDown
-                            size={14}
-                            className={`transition-transform duration-500 ${
-                              openDropdowns[item.dropdownKey] ? 'rotate-180 text-amber-500' : ''
-                            }`}
-                          />
-                        </div>
-                      )}
-                    </button>
-                    {isSidebarOpen && openDropdowns[item.dropdownKey] && (
-                      <div className="mt-2 ml-10 space-y-1 border-l border-white/5">
-                        {item.subItems.map((subItem) => (
-                          <Link
-                            key={subItem.name}
-                            to={subItem.path}
-                            className={`flex items-center gap-3 px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                              location.pathname === subItem.path
-                                ? 'text-amber-500'
-                                : 'text-zinc-600 hover:text-white'
-                            }`}
-                          >
-                            <ChevronRight
-                              size={12}
-                              className={location.pathname === subItem.path ? 'opacity-100' : 'opacity-0'}
-                            />
-                            <span>{subItem.name}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
                   <Link
                     to={item.path}
                     className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${
@@ -177,7 +114,6 @@ const AdminNav = () => {
                       </span>
                     )}
                   </Link>
-                )}
               </div>
             );
           })}
