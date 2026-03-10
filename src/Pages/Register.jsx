@@ -79,6 +79,8 @@ const Register = () => {
 
       if (err?.code === 'auth/email-already-in-use') {
         setError('Email is already registered.');
+      } else if (err?.message === 'Failed to fetch') {
+        setError('Cannot connect to the backend server. Make sure the API is running and accessible on port 5000.');
       } else if (err?.message) {
         setError(err.message);
       } else {

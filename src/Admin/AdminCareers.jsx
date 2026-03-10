@@ -4,6 +4,7 @@ import {
   User, Mail, Phone, Calendar, Briefcase, 
   Clock, MapPin, ClipboardList, X, FileSearch, ArrowUpRight, CheckCircle2 
 } from 'lucide-react';
+import { API_BASE } from '../api';
 
 const AdminCareers = () => {
   const [applications, setApplications] = useState([]);
@@ -16,7 +17,7 @@ const AdminCareers = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:5000/api/admin/careers');
+        const res = await fetch(`${API_BASE}/api/admin/careers`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.message || 'Data stream interrupted');

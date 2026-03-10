@@ -1,8 +1,13 @@
 // src/api.js
 
-// In Vite, environment variables are accessed via import.meta.env
-// Define VITE_API_BASE in your .env file if you want to override the default.
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+// In Vite, environment variables are accessed via import.meta.env.
+// By default, target port 5000 on the same host the frontend was opened from.
+const DEFAULT_API_BASE =
+  typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}:5000`
+    : 'http://localhost:5000';
+
+export const API_BASE = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
 
 // Helper to handle responses consistently
 const handleResponse = async (res, errorMessage) => {

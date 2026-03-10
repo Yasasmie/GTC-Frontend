@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import NavBar from '../Components/NavBar';
 import Footer from '../Components/Footer';
+import { API_BASE } from '../api';
 
 const Careers = () => {
   const [formData, setFormData] = useState({
@@ -33,8 +34,7 @@ const Careers = () => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      // Ensure your backend endpoint is correct
-      const res = await fetch('http://localhost:5000/api/careers', {
+      const res = await fetch(`${API_BASE}/api/careers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
