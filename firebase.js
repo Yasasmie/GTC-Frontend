@@ -2,12 +2,12 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBMwPpoCqEjp1dxxsYb6MvTVhDThhm2oZ8", // Use environment variables in production!
-  authDomain: "assetfarm-3f85c.firebaseapp.com",
-  projectId: "assetfarm-3f85c",
-  storageBucket: "assetfarm-3f85c.firebasestorage.app",
-  messagingSenderId: "931720122397",
-  appId: "1:931720122397:web:4baff0590689ef133036f4"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
 };
 
 const app = initializeApp(firebaseConfig);
