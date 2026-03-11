@@ -9,13 +9,27 @@ import {
 const isPdf = value =>
   typeof value === 'string' &&
   (value.startsWith('data:application/pdf') || value.toLowerCase().endsWith('.pdf'));
+const isHttpLink = value =>
+  typeof value === 'string' &&
+  /^https?:\/\//i.test(value);
 
 const FilePreview = ({ src, label }) => {
   if (!src) return null;
   return (
     <div className="rounded-2xl border border-white/5 bg-black p-4">
       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-3">{label}</p>
-      {isPdf(src) ? (
+      {isHttpLink(src) ? (
+        <div className="h-80 rounded-xl border border-white/10 flex items-center justify-center">
+          <a
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 rounded-xl bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest"
+          >
+            Open Link
+          </a>
+        </div>
+      ) : isPdf(src) ? (
         <iframe title={label} src={src} className="w-full h-80 rounded-xl border border-white/10 bg-white" />
       ) : (
         <img src={src} alt={label} className="w-full max-h-80 object-contain rounded-xl border border-white/10" />

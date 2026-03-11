@@ -36,6 +36,9 @@ import {
 const isPdfFile = value =>
   typeof value === 'string' &&
   (value.startsWith('data:application/pdf') || value.toLowerCase().endsWith('.pdf'));
+const isHttpLink = value =>
+  typeof value === 'string' &&
+  /^https?:\/\//i.test(value);
 
 const requestStatusLabel = status => {
   if (status === 'pending_admin') return 'waiting for admin';
@@ -66,8 +69,12 @@ const Bots = () => {
 
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [selectedBotId, setSelectedBotId] = useState('');
-  const [signedAgreementFile, setSignedAgreementFile] = useState(null);
-  const [paymentSlipFile, setPaymentSlipFile] = useState(null);
+  const [signedAgreementValue, setSignedAgreementValue] = useState('');
+  const [signedAgreementName, setSignedAgreementName] = useState('');
+  const [signedAgreementLink, setSignedAgreementLink] = useState('');
+  const [paymentSlipValue, setPaymentSlipValue] = useState('');
+  const [paymentSlipName, setPaymentSlipName] = useState('');
+  const [paymentSlipLink, setPaymentSlipLink] = useState('');
 
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
@@ -85,7 +92,9 @@ const Bots = () => {
   const [loadingSellerData, setLoadingSellerData] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [selectedApprovalRequest, setSelectedApprovalRequest] = useState(null);
-  const [adminPaymentSlip, setAdminPaymentSlip] = useState(null);
+  const [adminPaymentSlipValue, setAdminPaymentSlipValue] = useState('');
+  const [adminPaymentSlipName, setAdminPaymentSlipName] = useState('');
+  const [adminPaymentSlipLink, setAdminPaymentSlipLink] = useState('');
 
   const isReferredUser = !!userProfile?.referredBy;
 
@@ -149,8 +158,12 @@ const Bots = () => {
     setError('');
     setSelectedAccountId(accounts[0]?.id || '');
     setSelectedBotId(botsCatalog[0]?.id || '');
-    setSignedAgreementFile(null);
-    setPaymentSlipFile(null);
+    setSignedAgreementValue('');
+    setSignedAgreementName('');
+    setSignedAgreementLink('');
+    setPaymentSlipValue('');
+    setPaymentSlipName('');
+    setPaymentSlipLink('');
     setIsAddModalOpen(true);
   };
 
@@ -178,24 +191,24 @@ const Bots = () => {
       setError('Please select a bot model.');
       return;
     }
-    if (!signedAgreementFile) {
-      setError('Please upload the signed service agreement.');
+    if (!signedAgreementValue && !signedAgreementLink.trim()) {
+      setError('Please upload or paste a link for the signed service agreement.');
       return;
     }
-    if (!paymentSlipFile) {
-      setError('Please upload the admin payment slip.');
+    if (!paymentSlipValue && !paymentSlipLink.trim()) {
+      setError('Please upload or paste a link for the admin payment slip.');
       return;
     }
-
-    const fakeUrl = `/signed-agreements/${signedAgreementFile.name}`;
+    const signedAgreementUrl = signedAgreementLink.trim() || signedAgreementValue;
+    const paymentSlip = paymentSlipLink.trim() || paymentSlipValue;
 
     try {
       setCreating(true);
       const created = await createUserBot(firebaseUser.uid, {
         brokerAccountId: Number(selectedAccountId),
         botId: Number(selectedBotId),
-        signedAgreementUrl: fakeUrl,
-        paymentSlip: paymentSlipFile,
+        signedAgreementUrl,
+        paymentSlip,
       });
       setUserBots(prev => [...prev, created]);
       setIsAddModalOpen(false);
@@ -220,13 +233,17 @@ const Bots = () => {
     }
   };
 
-  const handleUploadAsBase64 = (file, setter) => {
+  const handleUploadAsBase64 = (file, setter, nameSetter) => {
     if (!file) {
-      setter(null);
+      setter('');
+      if (nameSetter) nameSetter('');
       return;
     }
     const reader = new FileReader();
-    reader.onloadend = () => setter(reader.result);
+    reader.onloadend = () => {
+      setter(reader.result || '');
+      if (nameSetter) nameSetter(file.name || '');
+    };
     reader.readAsDataURL(file);
   };
 
@@ -274,15 +291,20 @@ const Bots = () => {
 
   const openApproveModal = request => {
     setSelectedApprovalRequest(request);
-    setAdminPaymentSlip(null);
+    setAdminPaymentSlipValue('');
+    setAdminPaymentSlipName('');
+    setAdminPaymentSlipLink('');
   };
 
   const handleApproveWithSlip = async e => {
     e.preventDefault();
-    if (!selectedApprovalRequest || !adminPaymentSlip) return;
-    await handleRequestStatus(selectedApprovalRequest.id, 'approved', adminPaymentSlip);
+    const slip = adminPaymentSlipLink.trim() || adminPaymentSlipValue;
+    if (!selectedApprovalRequest || !slip) return;
+    await handleRequestStatus(selectedApprovalRequest.id, 'approved', slip);
     setSelectedApprovalRequest(null);
-    setAdminPaymentSlip(null);
+    setAdminPaymentSlipValue('');
+    setAdminPaymentSlipName('');
+    setAdminPaymentSlipLink('');
   };
 
   const isGlobalLoading = loadingAccounts || loadingBots || loadingUser;
@@ -697,31 +719,45 @@ const Bots = () => {
                       <input
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={e => setSignedAgreementFile(e.target.files?.[0] || null)}
+                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setSignedAgreementValue, setSignedAgreementName)}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
                         <Upload size={18} className="text-gray-500" />
                         <span className="text-xs font-bold text-gray-500">
-                          {signedAgreementFile ? signedAgreementFile.name : "Upload Signed PDF"}
+                          {signedAgreementName || 'Upload Signed PDF'}
                         </span>
                       </div>
                     </div>
+                    <input
+                      type="url"
+                      value={signedAgreementLink}
+                      onChange={e => setSignedAgreementLink(e.target.value)}
+                      placeholder="Or paste signed agreement link (https://...)"
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                    />
 
                     <div className="relative group">
                       <input
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setPaymentSlipFile)}
+                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setPaymentSlipValue, setPaymentSlipName)}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
                         <Upload size={18} className="text-gray-500" />
                         <span className="text-xs font-bold text-gray-500">
-                          {paymentSlipFile ? 'Admin Payment Slip Uploaded' : 'Upload Admin Payment Slip'}
+                          {paymentSlipName || 'Upload Admin Payment Slip'}
                         </span>
                       </div>
                     </div>
+                    <input
+                      type="url"
+                      value={paymentSlipLink}
+                      onChange={e => setPaymentSlipLink(e.target.value)}
+                      placeholder="Or paste payment slip link (https://...)"
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                    />
                   </div>
 
                   <button
@@ -835,25 +871,31 @@ const Bots = () => {
                     </p>
                   </div>
 
-                  <div className="relative group">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setAdminPaymentSlip)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      required
-                    />
-                    <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
-                      <Upload size={18} className="text-gray-500" />
-                      <span className="text-xs font-bold text-gray-500">
-                        {adminPaymentSlip ? 'Admin Price Slip Uploaded' : 'Upload Admin Price Payment Slip'}
-                      </span>
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setAdminPaymentSlipValue, setAdminPaymentSlipName)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                        <Upload size={18} className="text-gray-500" />
+                        <span className="text-xs font-bold text-gray-500">
+                        {adminPaymentSlipName || 'Upload Admin Price Payment Slip'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                    <input
+                      type="url"
+                      value={adminPaymentSlipLink}
+                      onChange={e => setAdminPaymentSlipLink(e.target.value)}
+                      placeholder="Or paste admin payment slip link (https://...)"
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                    />
 
                   <button
                     type="submit"
-                    disabled={!adminPaymentSlip}
+                    disabled={!adminPaymentSlipValue && !adminPaymentSlipLink.trim()}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-2xl transition-all disabled:opacity-30"
                   >
                     Approve And Release Bot
@@ -883,6 +925,17 @@ const Bots = () => {
                   src={selectedSlip}
                   className="w-full h-[80vh] rounded-[2rem] border border-white/10 shadow-2xl bg-white"
                 />
+              ) : isHttpLink(selectedSlip) ? (
+                <div className="w-full h-[80vh] rounded-[2rem] border border-white/10 shadow-2xl bg-zinc-950 flex items-center justify-center">
+                  <a
+                    href={selectedSlip}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 py-3 rounded-xl bg-amber-500 text-black font-black uppercase tracking-widest text-sm"
+                  >
+                    Open Payment Slip Link
+                  </a>
+                </div>
               ) : (
                 <img
                   src={selectedSlip}

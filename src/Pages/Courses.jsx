@@ -22,7 +22,8 @@ const Courses = () => {
     phone: '',
     notes: '',
     paymentSlipFile: null,
-    paymentSlipBase64: ''
+    paymentSlipBase64: '',
+    paymentSlipLink: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -66,7 +67,8 @@ const Courses = () => {
       phone: '',
       notes: '',
       paymentSlipFile: null,
-      paymentSlipBase64: ''
+      paymentSlipBase64: '',
+      paymentSlipLink: ''
     });
     setShowApplyModal(true);
   };
@@ -141,8 +143,9 @@ const Courses = () => {
   const handleSubmitApplication = async (e) => {
     e.preventDefault();
     if (!selectedCourse) return;
-    if (!appForm.paymentSlipBase64) {
-      alert('Please upload a payment slip image.');
+    const finalPaymentSlip = appForm.paymentSlipLink.trim() || appForm.paymentSlipBase64;
+    if (!finalPaymentSlip) {
+      alert('Please upload a payment slip or paste a payment slip link.');
       return;
     }
     try {
@@ -157,7 +160,7 @@ const Courses = () => {
         email: appForm.email,
         phone: appForm.phone,
         notes: appForm.notes,
-        paymentSlip: appForm.paymentSlipBase64,
+        paymentSlip: finalPaymentSlip,
         uid: currentUser.uid,
       });
       alert('Application submitted successfully.');
@@ -478,9 +481,16 @@ const Courses = () => {
                   </p>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf"
                     onChange={handleSlipChange}
                     className="w-full text-xs text-zinc-300"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Or paste payment slip link (https://...)"
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
+                    value={appForm.paymentSlipLink}
+                    onChange={e => setAppForm(prev => ({ ...prev, paymentSlipLink: e.target.value }))}
                   />
                 </div>
 

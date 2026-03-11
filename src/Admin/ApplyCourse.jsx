@@ -3,6 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { getCourseApplications, updateCourseApplicationStatus } from '../api';
 import { Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
 
+const isPdf = value =>
+  typeof value === 'string' &&
+  (value.startsWith('data:application/pdf') || value.toLowerCase().endsWith('.pdf'));
+const isHttpLink = value =>
+  typeof value === 'string' &&
+  /^https?:\/\//i.test(value);
+
 const ApplyCourse = () => {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,12 +167,28 @@ const ApplyCourse = () => {
               {selectedApp.paymentSlip && (
                 <div className="mt-4">
                   <p className="font-bold mb-2 text-zinc-200 text-sm">Payment Slip</p>
-                  {/* If it's base64 dataURL, this will render the image */}
-                  <img
-                    src={selectedApp.paymentSlip}
-                    alt="Payment slip"
-                    className="w-full rounded border border-white/10"
-                  />
+                  {isHttpLink(selectedApp.paymentSlip) ? (
+                    <a
+                      href={selectedApp.paymentSlip}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex px-4 py-2 rounded-lg bg-amber-500 text-black text-[11px] font-black uppercase tracking-widest"
+                    >
+                      Open Payment Slip Link
+                    </a>
+                  ) : isPdf(selectedApp.paymentSlip) ? (
+                    <iframe
+                      title="Payment slip"
+                      src={selectedApp.paymentSlip}
+                      className="w-full h-80 rounded border border-white/10 bg-white"
+                    />
+                  ) : (
+                    <img
+                      src={selectedApp.paymentSlip}
+                      alt="Payment slip"
+                      className="w-full rounded border border-white/10"
+                    />
+                  )}
                 </div>
               )}
             </div>

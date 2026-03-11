@@ -11,6 +11,45 @@ import { ShieldAlert, FileText, CheckCircle, XCircle, User, Activity, Clock, Sea
 const isPdf = value =>
   typeof value === 'string' &&
   (value.startsWith('data:application/pdf') || value.toLowerCase().endsWith('.pdf'));
+const isHttpLink = value =>
+  typeof value === 'string' &&
+  /^https?:\/\//i.test(value);
+
+const FilePreview = ({ src, title }) => {
+  if (!src) return null;
+  if (isHttpLink(src)) {
+    return (
+      <div className="relative aspect-[4/3] md:aspect-[16/9] bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 flex items-center justify-center">
+        <a
+          href={src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 rounded-xl bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest"
+        >
+          Open Link
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-[4/3] md:aspect-[16/9] bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 group">
+      {isPdf(src) ? (
+        <iframe
+          title={title}
+          src={src}
+          className="w-full h-full bg-white"
+        />
+      ) : (
+        <img
+          src={src}
+          alt={title}
+          className="w-full h-full object-contain p-4"
+        />
+      )}
+    </div>
+  );
+};
 
 const BotRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -212,45 +251,14 @@ const BotRequests = () => {
               {selected.paymentSlip && (
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Payment Slip</label>
-                  <div className="relative aspect-[4/3] md:aspect-[16/9] bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 group">
-                    {isPdf(selected.paymentSlip) ? (
-                      <iframe
-                        title="Payment Slip"
-                        src={selected.paymentSlip}
-                        className="w-full h-full bg-white"
-                      />
-                    ) : (
-                      <img
-                        src={selected.paymentSlip}
-                        alt="Payment Slip"
-                        className="w-full h-full object-contain p-4"
-                      />
-                    )}
-                  </div>
+                  <FilePreview src={selected.paymentSlip} title="Payment Slip" />
                 </div>
               )}
 
               {/* Document Preview */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Signed Agreement Manifest</label>
-                <div className="relative aspect-[4/3] md:aspect-[16/9] bg-zinc-900 rounded-3xl overflow-hidden border border-white/5 group">
-                  {isPdf(selected.signedAgreementUrl) ? (
-                    <iframe
-                      title="Agreement"
-                      src={selected.signedAgreementUrl}
-                      className="w-full h-full bg-white"
-                    />
-                  ) : (
-                    <img
-                      src={selected.signedAgreementUrl}
-                      alt="Agreement"
-                      className="w-full h-full object-contain p-4"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-4 py-2 rounded-full">Secure Document Viewer</span>
-                  </div>
-                </div>
+                <FilePreview src={selected.signedAgreementUrl} title="Agreement" />
               </div>
             </div>
 

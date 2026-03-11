@@ -37,7 +37,9 @@ const Marketplace = () => {
   const [broker, setBroker] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [amountInAsset, setAmountInAsset] = useState('');
-  const [paymentSlip, setPaymentSlip] = useState(null);
+  const [paymentSlip, setPaymentSlip] = useState('');
+  const [paymentSlipName, setPaymentSlipName] = useState('');
+  const [paymentSlipLink, setPaymentSlipLink] = useState('');
   const [purchasing, setPurchasing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const isReferredUser = !!userProfile?.referredBy;
@@ -75,6 +77,9 @@ const Marketplace = () => {
     setPurchaseModalOpen(true);
     setSuccessMessage('');
     setAmountInAsset('');
+    setPaymentSlip('');
+    setPaymentSlipName('');
+    setPaymentSlipLink('');
     if (accounts.length > 0) {
       setSelectedAccountId(String(accounts[0].id));
       setBroker(accounts[0].broker || '');
@@ -89,6 +94,11 @@ const Marketplace = () => {
   const handlePurchase = async (e) => {
     e.preventDefault();
     if (!selectedListing || !broker || !accountNumber || !amountInAsset || !firebaseUser) return;
+    const finalPaymentSlip = paymentSlipLink.trim() || paymentSlip;
+    if (!finalPaymentSlip) {
+      setError('Please upload a payment slip or paste a valid link.');
+      return;
+    }
 
     setPurchasing(true);
     setError('');
@@ -100,7 +110,7 @@ const Marketplace = () => {
         broker,
         accountNumber,
         amountInAsset: Number(amountInAsset),
-        paymentSlip: paymentSlip,
+        paymentSlip: finalPaymentSlip,
       });
       openWhatsAppRequest(
         [
@@ -121,7 +131,9 @@ const Marketplace = () => {
       setTimeout(() => {
         setPurchaseModalOpen(false);
         setSelectedListing(null);
-        setPaymentSlip(null);
+        setPaymentSlip('');
+        setPaymentSlipName('');
+        setPaymentSlipLink('');
         setAmountInAsset('');
         setSuccessMessage('');
       }, 4000);
@@ -137,9 +149,13 @@ const Marketplace = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPaymentSlip(reader.result); // Base64 string
+        setPaymentSlip(typeof reader.result === 'string' ? reader.result : '');
+        setPaymentSlipName(file.name || '');
       };
       reader.readAsDataURL(file);
+    } else {
+      setPaymentSlip('');
+      setPaymentSlipName('');
     }
   };
 
@@ -386,18 +402,24 @@ const Marketplace = () => {
                       <div className="relative group">
                         <input
                           type="file"
-                          accept="image/*"
-                          required
+                          accept="image/*,.pdf"
                           onChange={handleFileChange}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        <div className={`p-6 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all ${paymentSlip ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/10 group-hover:border-white/20'}`}>
-                          <Upload size={20} className={paymentSlip ? 'text-amber-500' : 'text-gray-500'} />
+                        <div className={`p-6 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all ${paymentSlip || paymentSlipLink.trim() ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/10 group-hover:border-white/20'}`}>
+                          <Upload size={20} className={paymentSlip || paymentSlipLink.trim() ? 'text-amber-500' : 'text-gray-500'} />
                           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                            {paymentSlip ? 'Payment Slip Loaded' : 'Upload Proof of Payment'}
+                            {paymentSlipName || (paymentSlipLink.trim() ? 'Payment Slip Link Added' : 'Upload Proof of Payment')}
                           </span>
                         </div>
                       </div>
+                      <input
+                        type="url"
+                        value={paymentSlipLink}
+                        onChange={e => setPaymentSlipLink(e.target.value)}
+                        placeholder="Or paste payment slip link (https://...)"
+                        className="w-full px-4 py-3 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                      />
                     </div>
 
                     <div className="space-y-4">
@@ -410,7 +432,7 @@ const Marketplace = () => {
 
                       <button
                         type="submit"
-                        disabled={purchasing || !paymentSlip || !broker || !accountNumber || !amountInAsset}
+                        disabled={purchasing || (!paymentSlip && !paymentSlipLink.trim()) || !broker || !accountNumber || !amountInAsset}
                         className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
                       >
                         {purchasing ? <Loader2 className="animate-spin" size={20} /> : 'SUBMIT PURCHASE REQUEST'}
