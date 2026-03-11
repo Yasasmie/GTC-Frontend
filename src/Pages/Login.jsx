@@ -4,6 +4,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Chrome, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '../../firebase';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { createUserRecord } from '../api';
 import NavBar from '../Components/NavBar';
 import Footer from '../Components/Footer';
 
@@ -33,7 +34,13 @@ const Login = () => {
   const handleGoogleSignIn = async () => {
     setError('');
     try {
-      await signInWithPopup(auth, googleProvider);
+      const cred = await signInWithPopup(auth, googleProvider);
+      await createUserRecord({
+        uid: cred.user.uid,
+        email: cred.user.email,
+        name: cred.user.displayName || '',
+        referredBy: null,
+      });
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError('Could not sign in with Google.');

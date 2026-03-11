@@ -27,7 +27,6 @@ const KycForm = () => {
   }, []);
 
   if (!firebaseUser) {
-    navigate('/login');
     return null;
   }
 

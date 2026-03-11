@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, PlayCircle, MapPin, Send, DollarSign, Video, Check } from 'lucide-react';
 import { getCourses, submitCourseApplication, getUserCourseApplications } from '../api';
-import { auth } from '../../firebase';
+import { useOutletContext } from 'react-router-dom';
 
 const Courses = () => {
+  const { currentUser } = useOutletContext();
   const [courses, setCourses] = useState([]);
   const [userApplications, setUserApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,14 +31,6 @@ const Courses = () => {
       try {
         const data = await getCourses();
         setCourses(data);
-        
-        // Wait briefly to ensure auth is initialized if navigating directly
-        setTimeout(async () => {
-          if (auth.currentUser) {
-            const apps = await getUserCourseApplications(auth.currentUser.uid);
-            setUserApplications(apps);
-          }
-        }, 500);
       } catch (err) {
         console.error('Failed to load courses:', err);
       } finally {
@@ -46,6 +39,23 @@ const Courses = () => {
     };
     fetchCoursesData();
   }, []);
+
+  useEffect(() => {
+    const loadApplications = async () => {
+      if (!currentUser?.uid) {
+        setUserApplications([]);
+        return;
+      }
+      try {
+        const apps = await getUserCourseApplications(currentUser.uid);
+        setUserApplications(apps);
+      } catch (err) {
+        console.error('Failed to load user course applications:', err);
+      }
+    };
+
+    loadApplications();
+  }, [currentUser]);
 
   const handleApply = (course, userApp) => {
     setSelectedCourse(course);
@@ -137,6 +147,10 @@ const Courses = () => {
     }
     try {
       setSubmitting(true);
+      if (!currentUser?.uid) {
+        alert('Please sign in first.');
+        return;
+      }
       await submitCourseApplication({
         courseId: selectedCourse.id,
         name: appForm.name,
@@ -144,10 +158,12 @@ const Courses = () => {
         phone: appForm.phone,
         notes: appForm.notes,
         paymentSlip: appForm.paymentSlipBase64,
-        uid: auth.currentUser?.uid || 'anonymous',
+        uid: currentUser.uid,
       });
       alert('Application submitted successfully.');
       setShowApplyModal(false);
+      const apps = await getUserCourseApplications(currentUser.uid);
+      setUserApplications(apps);
     } catch (err) {
       console.error('Failed to submit application:', err);
       alert('Failed to submit application.');

@@ -70,11 +70,8 @@ const ManageUsers = () => {
     () =>
       users.filter(
         user =>
-          !user.referredBy &&
-          (
-            (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-          )
+          (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [users, searchTerm]
   );

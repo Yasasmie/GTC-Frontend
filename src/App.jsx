@@ -33,7 +33,7 @@ import UserBotsDetail from './Admin/UserBotsDetail';
 import ResaleHistory from './Admin/ResaleHistory';
 import ResaleApprovals from './Admin/ResaleApprovals';
 
-import { getUserByUid } from './api';
+import { createUserRecord, getUserByUid } from './api';
 
 // User Protected Route with status + KYC logic
 const ProtectedRoute = ({ children }) => {
@@ -53,7 +53,17 @@ const ProtectedRoute = ({ children }) => {
       setAuthUser(currentUser);
 
       try {
-        const rec = await getUserByUid(currentUser.uid);
+        let rec;
+        try {
+          rec = await getUserByUid(currentUser.uid);
+        } catch {
+          rec = await createUserRecord({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || '',
+            referredBy: null,
+          });
+        }
         setUserStatus({
           status: rec.status,
           kycCompleted: rec.kycCompleted,
@@ -89,7 +99,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/pending-approval" replace />;
   }
 
-  if (userStatus.status === 'pending') {
+  if (userStatus.status !== 'approved') {
     return <Navigate to="/pending-approval" replace />;
   }
 
@@ -99,6 +109,134 @@ const ProtectedRoute = ({ children }) => {
 
   // approved + KYC done -> allow dashboard routes
   return children;
+};
+
+const KycRoute = () => {
+  const [authUser, setAuthUser] = useState(null);
+  const [userStatus, setUserStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async currentUser => {
+      if (!currentUser) {
+        setAuthUser(null);
+        setUserStatus(null);
+        setLoading(false);
+        return;
+      }
+
+      setAuthUser(currentUser);
+      try {
+        let rec;
+        try {
+          rec = await getUserByUid(currentUser.uid);
+        } catch {
+          rec = await createUserRecord({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || '',
+            referredBy: null,
+          });
+        }
+        setUserStatus({
+          status: rec.status,
+          kycCompleted: rec.kycCompleted,
+        });
+      } catch {
+        setUserStatus({ status: 'pending', kycCompleted: false });
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!userStatus || userStatus.status !== 'approved') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  if (userStatus.kycCompleted) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <KycForm />;
+};
+
+const PendingApprovalRoute = () => {
+  const [authUser, setAuthUser] = useState(null);
+  const [userStatus, setUserStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async currentUser => {
+      if (!currentUser) {
+        setAuthUser(null);
+        setUserStatus(null);
+        setLoading(false);
+        return;
+      }
+
+      setAuthUser(currentUser);
+      try {
+        let rec;
+        try {
+          rec = await getUserByUid(currentUser.uid);
+        } catch {
+          rec = await createUserRecord({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUser.displayName || '',
+            referredBy: null,
+          });
+        }
+        setUserStatus({
+          status: rec.status,
+          kycCompleted: rec.kycCompleted,
+        });
+      } catch {
+        setUserStatus({ status: 'pending', kycCompleted: false });
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (userStatus?.status === 'approved' && !userStatus?.kycCompleted) {
+    return <Navigate to="/kyc" replace />;
+  }
+
+  if (userStatus?.status === 'approved' && userStatus?.kycCompleted) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <PendingApproval />;
 };
 
 // Admin Protected Route
@@ -148,8 +286,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/pending-approval" element={<PendingApproval />} />
-        <Route path="/kyc" element={<KycForm />} />
+        <Route path="/pending-approval" element={<PendingApprovalRoute />} />
+        <Route path="/kyc" element={<KycRoute />} />
 
         {/* User dashboard */}
         <Route
