@@ -112,7 +112,7 @@ const ManageBots = () => {
       setBots(prev => [created, ...prev]);
       closeAllModals();
     } catch (err) {
-      setError('Failed to initialize new bot unit.');
+      setError(err?.message || 'Failed to initialize new bot unit.');
     } finally {
       setSaving(false);
     }
@@ -136,7 +136,7 @@ const ManageBots = () => {
       setBots(prev => prev.map(b => (b.id === updated.id ? updated : b)));
       closeAllModals();
     } catch (err) {
-      setError('Failed to reconfigure bot unit.');
+      setError(err?.message || 'Failed to reconfigure bot unit.');
     } finally {
       setSaving(false);
     }
@@ -151,13 +151,11 @@ const ManageBots = () => {
       setBots(prev => prev.filter(b => b.id !== currentBot.id));
       closeAllModals();
     } catch (err) {
-      setError('Decommissioning failed.');
+      setError(err?.message || 'Decommissioning failed.');
     } finally {
       setDeleting(false);
     }
   };
-
-  const formatDateTime = iso => iso ? new Date(iso).toLocaleDateString() : 'N/A';
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-400 p-4 md:p-8">
