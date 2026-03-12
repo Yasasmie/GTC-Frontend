@@ -54,6 +54,7 @@ const FilePreview = ({ src, title }) => {
 const BotRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestView, setRequestView] = useState('buying');
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -62,9 +63,9 @@ const BotRequests = () => {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const data = await getBotRequests();
+      const data = await getBotRequests(requestView);
       setRequests(data);
-    } catch (err) {
+    } catch {
       setError('Permission Denied: Unable to fetch incoming requests.');
     } finally {
       setLoading(false);
@@ -73,7 +74,7 @@ const BotRequests = () => {
 
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [requestView]);
 
   const openView = async id => {
     setError('');
@@ -81,7 +82,7 @@ const BotRequests = () => {
       const data = await getBotRequestById(id);
       setSelected(data);
       setModalOpen(true);
-    } catch (err) {
+    } catch {
       setError('System Error: Could not retrieve agreement manifest.');
     }
   };
@@ -98,7 +99,7 @@ const BotRequests = () => {
       await approveBotRequest(selected.id);
       closeModal();
       await loadRequests();
-    } catch (err) {
+    } catch {
       setError('Deployment Failed: Approval logic error.');
     } finally {
       setActionLoading(false);
@@ -112,7 +113,7 @@ const BotRequests = () => {
       await rejectBotRequest(selected.id);
       closeModal();
       await loadRequests();
-    } catch (err) {
+    } catch {
       setError('Rejection Failed: Security override error.');
     } finally {
       setActionLoading(false);
@@ -148,9 +149,30 @@ const BotRequests = () => {
             Deployment <span className="text-amber-500">Requests</span>
           </h1>
           <p className="mt-2 text-zinc-500 text-sm max-w-2xl font-medium">
-            Verify signed legal agreements and authorize bot unit assignments to verified broker accounts.
+            {requestView === 'buying'
+              ? 'Review direct client bot buying requests.'
+              : 'Review reseller bot requests that become resale-eligible after approval.'}
           </p>
         </header>
+
+        <div className="mb-6 inline-flex items-center gap-1 bg-zinc-950 border border-white/5 p-1 rounded-2xl">
+          <button
+            onClick={() => setRequestView('buying')}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              requestView === 'buying' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'
+            }`}
+          >
+            Buying Bots
+          </button>
+          <button
+            onClick={() => setRequestView('resell')}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              requestView === 'resell' ? 'bg-amber-500 text-black' : 'text-zinc-500 hover:text-white'
+            }`}
+          >
+            Resell Requests
+          </button>
+        </div>
 
         {error && (
           <div className="mb-6 flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">
@@ -195,6 +217,9 @@ const BotRequests = () => {
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-zinc-300 uppercase">{r.botName}</span>
                           <span className="text-[10px] font-mono text-amber-500/60">${r.price}</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-cyan-500/80">
+                            {r.requestType === 'resell_request' ? 'Resell Request' : 'Buying Bot'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-8 py-6">
@@ -246,6 +271,9 @@ const BotRequests = () => {
                 <DetailBox icon={<User size={14}/>} label="Operator Identity" value={selected.userName} subValue={selected.userEmail} />
                 <DetailBox icon={<Activity size={14}/>} label="Broker Destination" value={selected.broker} subValue={selected.accountNumber} />
                 <DetailBox icon={<Clock size={14}/>} label="Temporal Window" value={`REQ: ${formatDateTime(selected.createdAt)}`} subValue={`EXP: ${getExpiryDate(selected.createdAt)}`} />
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-zinc-900/40 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                Request Type: {selected.requestType === 'resell_request' ? 'Resell Request (Resale Eligible)' : 'Buying Bot (No Resale)'}
               </div>
 
               {selected.paymentSlip && (

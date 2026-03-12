@@ -205,8 +205,9 @@ export const adminDeleteBot = async (id) => {
 
 // --- BOT REQUESTS (ADMIN) ---
 
-export const getBotRequests = async () => {
-  const res = await fetch(`${API_BASE}/api/admin/bot-requests`);
+export const getBotRequests = async (type) => {
+  const query = type ? `?type=${encodeURIComponent(type)}` : '';
+  const res = await fetch(`${API_BASE}/api/admin/bot-requests${query}`);
   return handleResponse(res, 'Failed to load bot requests');
 };
 

@@ -11,7 +11,7 @@ import {
   updateResaleRequestStatus,
   getSaleHistory,
 } from '../api';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import {
   Cpu,
   Plus,
@@ -69,6 +69,7 @@ const Bots = () => {
 
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [selectedBotId, setSelectedBotId] = useState('');
+  const [requestType, setRequestType] = useState('direct_buy');
   const [signedAgreementValue, setSignedAgreementValue] = useState('');
   const [signedAgreementName, setSignedAgreementName] = useState('');
   const [signedAgreementLink, setSignedAgreementLink] = useState('');
@@ -158,6 +159,7 @@ const Bots = () => {
     setError('');
     setSelectedAccountId(accounts[0]?.id || '');
     setSelectedBotId(botsCatalog[0]?.id || '');
+    setRequestType('direct_buy');
     setSignedAgreementValue('');
     setSignedAgreementName('');
     setSignedAgreementLink('');
@@ -209,6 +211,7 @@ const Bots = () => {
         botId: Number(selectedBotId),
         signedAgreementUrl,
         paymentSlip,
+        requestType,
       });
       setUserBots(prev => [...prev, created]);
       setIsAddModalOpen(false);
@@ -216,17 +219,18 @@ const Bots = () => {
       const selectedBot = botsCatalog.find(bot => Number(bot.id) === Number(selectedBotId));
       openWhatsAppRequest(
         [
-          'Direct Bot Request',
+          requestType === 'resell_request' ? 'Resell Bot Request' : 'Direct Bot Request',
           `Client: ${userRecord?.name || firebaseUser?.displayName || firebaseUser?.email || 'Unknown'}`,
           `Email: ${firebaseUser?.email || 'N/A'}`,
           `Bot: ${selectedBot?.name || created.botName}`,
           `Broker: ${selectedAccount?.broker || created.broker || 'N/A'}`,
           `Account Number: ${selectedAccount?.accountNumber || created.accountNumber || 'N/A'}`,
           `Price: $${selectedBot?.price ?? created.price ?? 0}`,
+          `Request Type: ${requestType === 'resell_request' ? 'Resell Request' : 'Buying Bot'}`,
           'Payment slip uploaded in system.',
         ].join('\n')
       );
-    } catch (err) {
+    } catch {
       setError('Deployment failed. Internal server error.');
     } finally {
       setCreating(false);
@@ -456,6 +460,8 @@ const Bots = () => {
                                     </p>
                                   )}
                                 </div>
+                              ) : b.canResell ? (
+                                <span className="text-[10px] font-black text-cyan-500 uppercase">Resell Request Bot</span>
                               ) : (
                                 <span className="text-[10px] font-black text-zinc-600 uppercase">Direct Purchase</span>
                               )}
@@ -478,7 +484,7 @@ const Bots = () => {
                               </td>
                             )}
                             <td className="px-8 py-5">
-                              {!isReferredUser && b.status === 'approved' && !b.isForResale && !b.boughtFrom && (
+                              {!isReferredUser && b.status === 'approved' && !b.isForResale && !b.boughtFrom && b.canResell && (
                                 <button 
                                   onClick={() => openResaleModal(b)}
                                   className="flex items-center gap-1 text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest"
@@ -489,6 +495,9 @@ const Bots = () => {
                               )}
                               {(b.boughtFrom || isReferredUser) && (
                                 <span className="text-[10px] font-black text-gray-700 uppercase italic">Resale Restricted</span>
+                              )}
+                              {!isReferredUser && b.status === 'approved' && !b.isForResale && !b.boughtFrom && !b.canResell && (
+                                <span className="text-[10px] font-black text-gray-700 uppercase italic">Direct Purchase - No Resale</span>
                               )}
                               {b.status !== 'approved' && (
                                 <span className="text-[10px] font-black text-gray-600 uppercase italic">Waiting for Approval</span>
@@ -698,6 +707,23 @@ const Bots = () => {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Request Mode</label>
+                    <select
+                      value={requestType}
+                      onChange={e => setRequestType(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                    >
+                      <option value="direct_buy">Buying Bot (No Resale)</option>
+                      <option value="resell_request">Resell Request (Resale Enabled After Approval)</option>
+                    </select>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      {requestType === 'resell_request'
+                        ? 'This request asks admin for a resale-eligible bot.'
+                        : 'Direct buy bots are for personal use and cannot be resold.'}
+                    </p>
                   </div>
 
                   <div className="bg-black border border-white/10 p-6 rounded-3xl space-y-4">
