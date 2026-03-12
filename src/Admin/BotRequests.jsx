@@ -286,7 +286,13 @@ const BotRequests = () => {
               {/* Document Preview */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Signed Agreement Manifest</label>
-                <FilePreview src={selected.signedAgreementUrl} title="Agreement" />
+                {selected.signedAgreementUrl ? (
+                  <FilePreview src={selected.signedAgreementUrl} title="Agreement" />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-zinc-900/40 px-4 py-5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    No signed agreement required for this request mode.
+                  </div>
+                )}
               </div>
             </div>
 

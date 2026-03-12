@@ -174,6 +174,7 @@ const Bots = () => {
   const handleCreateBot = async e => {
     e.preventDefault();
     setError('');
+    const isResellRequestMode = requestType === 'resell_request';
 
     if (!firebaseUser) {
       setError('Authentication required.');
@@ -185,7 +186,7 @@ const Bots = () => {
       return;
     }
 
-    if (!selectedAccountId) {
+    if (!isResellRequestMode && !selectedAccountId) {
       setError('Please select an active broker account.');
       return;
     }
@@ -193,21 +194,25 @@ const Bots = () => {
       setError('Please select a bot model.');
       return;
     }
-    if (!signedAgreementValue && !signedAgreementLink.trim()) {
+    if (!isResellRequestMode && !signedAgreementValue && !signedAgreementLink.trim()) {
       setError('Please upload or paste a link for the signed service agreement.');
       return;
     }
-    if (!paymentSlipValue && !paymentSlipLink.trim()) {
+    if (!isResellRequestMode && !paymentSlipValue && !paymentSlipLink.trim()) {
       setError('Please upload or paste a link for the admin payment slip.');
       return;
     }
-    const signedAgreementUrl = signedAgreementLink.trim() || signedAgreementValue;
-    const paymentSlip = paymentSlipLink.trim() || paymentSlipValue;
+    const signedAgreementUrl = isResellRequestMode
+      ? null
+      : signedAgreementLink.trim() || signedAgreementValue;
+    const paymentSlip = isResellRequestMode
+      ? null
+      : paymentSlipLink.trim() || paymentSlipValue;
 
     try {
       setCreating(true);
       const created = await createUserBot(firebaseUser.uid, {
-        brokerAccountId: Number(selectedAccountId),
+        brokerAccountId: isResellRequestMode ? null : Number(selectedAccountId),
         botId: Number(selectedBotId),
         signedAgreementUrl,
         paymentSlip,
@@ -337,7 +342,7 @@ const Bots = () => {
           {!isReferredUser && (
             <button
               onClick={openAddModal}
-              disabled={isGlobalLoading || accounts.length === 0 || !isKycApproved || botsCatalog.length === 0}
+              disabled={isGlobalLoading || !isKycApproved || botsCatalog.length === 0}
               className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-30 disabled:grayscale"
             >
               <Plus size={20} strokeWidth={3} />
@@ -358,7 +363,7 @@ const Bots = () => {
           {!loadingAccounts && accounts.length === 0 && !isReferredUser && (
             <div className="flex items-center gap-3 bg-zinc-900 border border-white/5 p-4 rounded-2xl text-gray-400">
               <AlertCircle size={20} />
-              <p className="text-xs font-bold uppercase tracking-widest">Connect a broker account to enable bot deployment</p>
+              <p className="text-xs font-bold uppercase tracking-widest">Connect a broker account for direct-buy bots (not needed for resell requests)</p>
             </div>
           )}
         </div>
@@ -681,20 +686,21 @@ const Bots = () => {
                 )}
 
                 <form onSubmit={handleCreateBot} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Account</label>
-                      <select
-                        value={selectedAccountId}
-                        onChange={e => setSelectedAccountId(Number(e.target.value))}
-                        className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
-                      >
-                        {accounts.map(acc => (
-                          <option key={acc.id} value={acc.id}>{acc.broker} - {acc.accountNumber}</option>
-                        ))}
-                      </select>
-                    </div>
-
+                  <div className={`grid grid-cols-1 gap-6 ${requestType === 'resell_request' ? '' : 'md:grid-cols-2'}`}>
+                    {requestType !== 'resell_request' && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Account</label>
+                        <select
+                          value={selectedAccountId}
+                          onChange={e => setSelectedAccountId(Number(e.target.value))}
+                          className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                        >
+                          {accounts.map(acc => (
+                            <option key={acc.id} value={acc.id}>{acc.broker} - {acc.accountNumber}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Choose Bot Model</label>
                       <select
@@ -726,65 +732,77 @@ const Bots = () => {
                     </p>
                   </div>
 
-                  <div className="bg-black border border-white/10 p-6 rounded-3xl space-y-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                      <div className="flex items-center gap-2">
-                        <FileText size={18} className="text-amber-500" />
-                        <span className="text-xs font-black uppercase tracking-widest">Service Agreement</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsAgreementOpen(true)}
-                        className="text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase underline"
-                      >
-                        Read Terms
-                      </button>
+                  {requestType === 'resell_request' ? (
+                    <div className="bg-black border border-white/10 p-6 rounded-3xl space-y-3">
+                      <p className="text-xs font-black uppercase tracking-widest text-emerald-500">Fast Resell Request</p>
+                      <p className="text-xs text-zinc-400">
+                        No account details, payment slip, or signed agreement required for this request.
+                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                        Admin will approve or decline this reseller request.
+                      </p>
                     </div>
+                  ) : (
+                    <div className="bg-black border border-white/10 p-6 rounded-3xl space-y-4">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-2">
+                          <FileText size={18} className="text-amber-500" />
+                          <span className="text-xs font-black uppercase tracking-widest">Service Agreement</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsAgreementOpen(true)}
+                          className="text-[10px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase underline"
+                        >
+                          Read Terms
+                        </button>
+                      </div>
 
-                    <div className="relative group">
-                      <input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setSignedAgreementValue, setSignedAgreementName)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
-                        <Upload size={18} className="text-gray-500" />
-                        <span className="text-xs font-bold text-gray-500">
-                          {signedAgreementName || 'Upload Signed PDF'}
-                        </span>
+                      <div className="relative group">
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setSignedAgreementValue, setSignedAgreementName)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                          <Upload size={18} className="text-gray-500" />
+                          <span className="text-xs font-bold text-gray-500">
+                            {signedAgreementName || 'Upload Signed PDF'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <input
-                      type="url"
-                      value={signedAgreementLink}
-                      onChange={e => setSignedAgreementLink(e.target.value)}
-                      placeholder="Or paste signed agreement link (https://...)"
-                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
-                    />
+                      <input
+                        type="url"
+                        value={signedAgreementLink}
+                        onChange={e => setSignedAgreementLink(e.target.value)}
+                        placeholder="Or paste signed agreement link (https://...)"
+                        className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                      />
 
-                    <div className="relative group">
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setPaymentSlipValue, setPaymentSlipName)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
-                        <Upload size={18} className="text-gray-500" />
-                        <span className="text-xs font-bold text-gray-500">
-                          {paymentSlipName || 'Upload Admin Payment Slip'}
-                        </span>
+                      <div className="relative group">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={e => handleUploadAsBase64(e.target.files?.[0] || null, setPaymentSlipValue, setPaymentSlipName)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="flex items-center justify-center gap-3 py-6 border-2 border-dashed border-white/10 rounded-2xl group-hover:border-amber-500/50 transition-colors">
+                          <Upload size={18} className="text-gray-500" />
+                          <span className="text-xs font-bold text-gray-500">
+                            {paymentSlipName || 'Upload Admin Payment Slip'}
+                          </span>
+                        </div>
                       </div>
+                      <input
+                        type="url"
+                        value={paymentSlipLink}
+                        onChange={e => setPaymentSlipLink(e.target.value)}
+                        placeholder="Or paste payment slip link (https://...)"
+                        className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
+                      />
                     </div>
-                    <input
-                      type="url"
-                      value={paymentSlipLink}
-                      onChange={e => setPaymentSlipLink(e.target.value)}
-                      placeholder="Or paste payment slip link (https://...)"
-                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl text-xs text-white outline-none focus:ring-1 focus:ring-amber-500/50"
-                    />
-                  </div>
+                  )}
 
                   <button
                     type="submit"
