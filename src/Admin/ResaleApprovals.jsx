@@ -188,6 +188,7 @@ const ResaleApprovals = () => {
                   <Detail label="Reseller" value={selected.resellerName} />
                   <Detail label="Buyer" value={selected.buyerName} />
                   <Detail label="Broker / Account" value={`${selected.broker} / ${selected.accountNumber}`} />
+                  <Detail label="Platform" value={selected.tradingPlatform || 'MT5'} />
                   <Detail label="Client Price" value={`$${selected.resalePrice}`} />
                   <Detail label="Actual Price" value={`$${selected.adminBasePrice}`} />
                   <Detail label="Admin Payable (65%)" value={`$${selected.adminPayablePrice}`} />

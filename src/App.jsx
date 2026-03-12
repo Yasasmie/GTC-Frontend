@@ -35,6 +35,15 @@ import ResaleApprovals from './Admin/ResaleApprovals';
 
 import { createUserRecord, getUserByUid } from './api';
 
+const AppLoader = () => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="h-12 w-12 animate-spin rounded-full border-2 border-amber-500/20 border-t-amber-500" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Loading</p>
+    </div>
+  </div>
+);
+
 // User Protected Route with status + KYC logic
 const ProtectedRoute = ({ children }) => {
   const [authUser, setAuthUser] = useState(null);
@@ -83,11 +92,7 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (!authUser) {
@@ -153,11 +158,7 @@ const KycRoute = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (!authUser) {
@@ -217,11 +218,7 @@ const PendingApprovalRoute = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (!authUser) {
@@ -253,11 +250,7 @@ const AdminProtectedRoute = ({ children }) => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (!authUser) {
@@ -338,3 +331,4 @@ function App() {
 }
 
 export default App;
+

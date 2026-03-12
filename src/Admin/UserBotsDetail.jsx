@@ -33,7 +33,8 @@ const UserBotsDetail = () => {
         const account = userAccounts.find(a => a.id === bot.brokerAccountId);
         return {
           ...bot,
-          accountType: bot.accountType || account?.accountType || 'N/A'
+          accountType: bot.accountType || account?.accountType || 'N/A',
+          tradingPlatform: bot.tradingPlatform || account?.tradingPlatform || 'MT5',
         };
       });
       setBots(enrichedBots);
@@ -228,9 +229,17 @@ const UserBotsDetail = () => {
                       <p className="text-sm text-zinc-300 font-mono italic">{selectedBot.accountNumber || 'N/A'}</p>
                     </div>
                     <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-1">Platform</p>
+                      <p className="text-sm text-amber-500 font-black uppercase">{selectedBot.tradingPlatform || 'MT5'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-1">Bot Model</p>
                       <p className="text-sm text-zinc-300 font-bold">{selectedBot.botModel || 'N/A'}</p>
                     </div>
+                    <div />
                   </div>
 
                   <div>

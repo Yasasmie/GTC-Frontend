@@ -68,6 +68,11 @@ const Bots = () => {
   const [isAgreementOpen, setIsAgreementOpen] = useState(false);
 
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [accountInputMode, setAccountInputMode] = useState('saved');
+  const [manualBroker, setManualBroker] = useState('');
+  const [manualAccountType, setManualAccountType] = useState('Manual account');
+  const [manualTradingPlatform, setManualTradingPlatform] = useState('MT5');
+  const [manualAccountNumber, setManualAccountNumber] = useState('');
   const [selectedBotId, setSelectedBotId] = useState('');
   const [requestType, setRequestType] = useState('direct_buy');
   const [signedAgreementValue, setSignedAgreementValue] = useState('');
@@ -158,6 +163,11 @@ const Bots = () => {
   const openAddModal = () => {
     setError('');
     setSelectedAccountId(accounts[0]?.id || '');
+    setAccountInputMode(accounts.length > 0 ? 'saved' : 'manual');
+    setManualBroker('');
+    setManualAccountType('Manual account');
+    setManualTradingPlatform('MT5');
+    setManualAccountNumber('');
     setSelectedBotId(botsCatalog[0]?.id || '');
     setRequestType('direct_buy');
     setSignedAgreementValue('');
@@ -187,7 +197,13 @@ const Bots = () => {
     }
 
     if (!isResellRequestMode && !selectedAccountId) {
-      setError('Please select an active broker account.');
+      if (accountInputMode !== 'manual') {
+        setError('Please select an active broker account.');
+        return;
+      }
+    }
+    if (!isResellRequestMode && accountInputMode === 'manual' && (!manualBroker.trim() || !manualAccountNumber.trim())) {
+      setError('Please enter broker and account number for manual account details.');
       return;
     }
     if (!selectedBotId) {
@@ -209,10 +225,28 @@ const Bots = () => {
       ? null
       : paymentSlipLink.trim() || paymentSlipValue;
 
+    const selectedAccount = accounts.find(acc => Number(acc.id) === Number(selectedAccountId));
+    const useManualAccount = !isResellRequestMode && accountInputMode === 'manual';
+    const resolvedBroker = useManualAccount ? manualBroker.trim() : selectedAccount?.broker || 'N/A';
+    const resolvedAccountNumber = useManualAccount ? manualAccountNumber.trim() : selectedAccount?.accountNumber || 'N/A';
+    const resolvedTradingPlatform = useManualAccount
+      ? manualTradingPlatform
+      : selectedAccount?.tradingPlatform || 'MT5';
+    const resolvedAccountType = useManualAccount
+      ? manualAccountType
+      : selectedAccount?.accountType || 'N/A';
+
     try {
       setCreating(true);
       const created = await createUserBot(firebaseUser.uid, {
-        brokerAccountId: isResellRequestMode ? null : Number(selectedAccountId),
+        brokerAccountId:
+          isResellRequestMode || useManualAccount
+            ? null
+            : Number(selectedAccountId),
+        broker: isResellRequestMode ? null : resolvedBroker,
+        accountNumber: isResellRequestMode ? null : resolvedAccountNumber,
+        accountType: isResellRequestMode ? null : resolvedAccountType,
+        tradingPlatform: isResellRequestMode ? null : resolvedTradingPlatform,
         botId: Number(selectedBotId),
         signedAgreementUrl,
         paymentSlip,
@@ -220,7 +254,6 @@ const Bots = () => {
       });
       setUserBots(prev => [...prev, created]);
       setIsAddModalOpen(false);
-      const selectedAccount = accounts.find(acc => Number(acc.id) === Number(selectedAccountId));
       const selectedBot = botsCatalog.find(bot => Number(bot.id) === Number(selectedBotId));
       openWhatsAppRequest(
         [
@@ -228,8 +261,9 @@ const Bots = () => {
           `Client: ${userRecord?.name || firebaseUser?.displayName || firebaseUser?.email || 'Unknown'}`,
           `Email: ${firebaseUser?.email || 'N/A'}`,
           `Bot: ${selectedBot?.name || created.botName}`,
-          `Broker: ${selectedAccount?.broker || created.broker || 'N/A'}`,
-          `Account Number: ${selectedAccount?.accountNumber || created.accountNumber || 'N/A'}`,
+          `Broker: ${resolvedBroker || created.broker || 'N/A'}`,
+          `Platform: ${resolvedTradingPlatform || created.tradingPlatform || 'N/A'}`,
+          `Account Number: ${resolvedAccountNumber || created.accountNumber || 'N/A'}`,
           `Price: $${selectedBot?.price ?? created.price ?? 0}`,
           `Request Type: ${requestType === 'resell_request' ? 'Resell Request' : 'Buying Bot'}`,
           'Payment slip uploaded in system.',
@@ -446,7 +480,9 @@ const Bots = () => {
                             <td className="px-8 py-5 text-sm font-mono text-gray-600">{(index + 1).toString().padStart(2, '0')}</td>
                             <td className="px-8 py-5">
                               <p className="text-sm font-black text-white">{b.broker}</p>
-                              <p className="text-[10px] text-amber-500/70 font-mono tracking-tighter">ID: {b.accountNumber}</p>
+                              <p className="text-[10px] text-amber-500/70 font-mono tracking-tighter">
+                                {b.tradingPlatform || 'MT5'} // ID: {b.accountNumber}
+                              </p>
                             </td>
                             <td className="px-8 py-5 font-bold text-gray-300 text-sm">{b.botName}</td>
                             <td className="px-8 py-5 font-mono text-amber-500 text-sm">${b.price}</td>
@@ -688,17 +724,69 @@ const Bots = () => {
                 <form onSubmit={handleCreateBot} className="space-y-6">
                   <div className={`grid grid-cols-1 gap-6 ${requestType === 'resell_request' ? '' : 'md:grid-cols-2'}`}>
                     {requestType !== 'resell_request' && (
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Account</label>
-                        <select
-                          value={selectedAccountId}
-                          onChange={e => setSelectedAccountId(Number(e.target.value))}
-                          className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
-                        >
-                          {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>{acc.broker} - {acc.accountNumber}</option>
-                          ))}
-                        </select>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Account Source</label>
+                          <select
+                            value={accountInputMode}
+                            onChange={e => setAccountInputMode(e.target.value)}
+                            className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                          >
+                            {accounts.length > 0 && <option value="saved">Use Saved Account</option>}
+                            <option value="manual">Enter Manually</option>
+                          </select>
+                        </div>
+
+                        {accountInputMode === 'saved' && accounts.length > 0 ? (
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Connect to Account</label>
+                            <select
+                              value={selectedAccountId}
+                              onChange={e => setSelectedAccountId(Number(e.target.value))}
+                              className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                            >
+                              {accounts.map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                  {acc.broker} - {acc.accountNumber} ({acc.tradingPlatform || 'MT5'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3">
+                            <input
+                              type="text"
+                              value={manualBroker}
+                              onChange={e => setManualBroker(e.target.value)}
+                              placeholder="Broker name"
+                              className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                            />
+                            <input
+                              type="text"
+                              value={manualAccountNumber}
+                              onChange={e => setManualAccountNumber(e.target.value)}
+                              placeholder="Account number"
+                              className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                            />
+                            <div className="grid grid-cols-2 gap-3">
+                              <select
+                                value={manualTradingPlatform}
+                                onChange={e => setManualTradingPlatform(e.target.value)}
+                                className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                              >
+                                <option value="MT5">MT5</option>
+                                <option value="MT4">MT4</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={manualAccountType}
+                                onChange={e => setManualAccountType(e.target.value)}
+                                placeholder="Account type"
+                                className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="space-y-2">

@@ -36,6 +36,7 @@ const Marketplace = () => {
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [broker, setBroker] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
+  const [tradingPlatform, setTradingPlatform] = useState('MT5');
   const [amountInAsset, setAmountInAsset] = useState('');
   const [paymentSlip, setPaymentSlip] = useState('');
   const [paymentSlipName, setPaymentSlipName] = useState('');
@@ -57,6 +58,7 @@ const Marketplace = () => {
             setSelectedAccountId(String(accs[0].id));
             setBroker(accs[0].broker || '');
             setAccountNumber(accs[0].accountNumber || '');
+            setTradingPlatform(accs[0].tradingPlatform || 'MT5');
           }
         }
       } catch (err) {
@@ -84,10 +86,12 @@ const Marketplace = () => {
       setSelectedAccountId(String(accounts[0].id));
       setBroker(accounts[0].broker || '');
       setAccountNumber(accounts[0].accountNumber || '');
+      setTradingPlatform(accounts[0].tradingPlatform || 'MT5');
     } else {
       setSelectedAccountId('');
       setBroker('');
       setAccountNumber('');
+      setTradingPlatform('MT5');
     }
   };
 
@@ -109,6 +113,7 @@ const Marketplace = () => {
         botInstanceId: selectedListing.id,
         broker,
         accountNumber,
+        tradingPlatform,
         amountInAsset: Number(amountInAsset),
         paymentSlip: finalPaymentSlip,
       });
@@ -120,6 +125,7 @@ const Marketplace = () => {
           `Bot: ${selectedListing.botName}`,
           `Reseller: ${selectedListing.sellerName}`,
           `Broker: ${broker}`,
+          `Platform: ${tradingPlatform}`,
           `Account Number: ${accountNumber}`,
           `Amount In Asset: ${amountInAsset}`,
           `Resale Price: $${selectedListing.resalePrice}`,
@@ -165,6 +171,7 @@ const Marketplace = () => {
     if (account) {
       setBroker(account.broker || '');
       setAccountNumber(account.accountNumber || '');
+      setTradingPlatform(account.tradingPlatform || 'MT5');
     }
   };
 
@@ -338,7 +345,7 @@ const Marketplace = () => {
                         >
                           {accounts.map(acc => (
                             <option key={acc.id} value={acc.id}>
-                              {acc.broker} - {acc.accountNumber} ({acc.accountType})
+                              {acc.broker} - {acc.accountNumber} ({acc.accountType}, {acc.tradingPlatform || 'MT5'})
                             </option>
                           ))}
                         </select>
@@ -349,7 +356,7 @@ const Marketplace = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
                           Broker
@@ -376,6 +383,21 @@ const Marketplace = () => {
                           placeholder="12345678"
                           className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all"
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                          Platform
+                        </label>
+                        <select
+                          required
+                          value={tradingPlatform}
+                          onChange={e => setTradingPlatform(e.target.value)}
+                          className="w-full px-4 py-4 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold text-white transition-all"
+                        >
+                          <option value="MT5">MT5</option>
+                          <option value="MT4">MT4</option>
+                        </select>
                       </div>
                     </div>
 
@@ -432,7 +454,7 @@ const Marketplace = () => {
 
                       <button
                         type="submit"
-                        disabled={purchasing || (!paymentSlip && !paymentSlipLink.trim()) || !broker || !accountNumber || !amountInAsset}
+                        disabled={purchasing || (!paymentSlip && !paymentSlipLink.trim()) || !broker || !accountNumber || !tradingPlatform || !amountInAsset}
                         className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-2xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-30 flex items-center justify-center gap-2"
                       >
                         {purchasing ? <Loader2 className="animate-spin" size={20} /> : 'SUBMIT PURCHASE REQUEST'}

@@ -210,7 +210,9 @@ const BotRequests = () => {
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
                           <span className="text-sm font-black text-white uppercase italic tracking-tight">{r.userName || 'ANONYMOUS'}</span>
-                          <span className="text-[10px] font-mono text-zinc-600">{r.broker} // {r.accountNumber}</span>
+                          <span className="text-[10px] font-mono text-zinc-600">
+                            {r.broker} // {r.tradingPlatform || 'MT5'} // {r.accountNumber}
+                          </span>
                         </div>
                       </td>
                       <td className="px-8 py-6">
@@ -269,7 +271,12 @@ const BotRequests = () => {
               {/* Grid Data */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <DetailBox icon={<User size={14}/>} label="Operator Identity" value={selected.userName} subValue={selected.userEmail} />
-                <DetailBox icon={<Activity size={14}/>} label="Broker Destination" value={selected.broker} subValue={selected.accountNumber} />
+                <DetailBox
+                  icon={<Activity size={14}/>}
+                  label="Broker Destination"
+                  value={selected.broker}
+                  subValue={`${selected.tradingPlatform || 'MT5'} // ${selected.accountNumber}`}
+                />
                 <DetailBox icon={<Clock size={14}/>} label="Temporal Window" value={`REQ: ${formatDateTime(selected.createdAt)}`} subValue={`EXP: ${getExpiryDate(selected.createdAt)}`} />
               </div>
               <div className="rounded-2xl border border-white/5 bg-zinc-900/40 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-cyan-400">

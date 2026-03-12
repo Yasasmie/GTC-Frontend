@@ -12,6 +12,7 @@ const Account = () => {
 
   const [broker, setBroker] = useState('XM');
   const [accountType, setAccountType] = useState('Standard account');
+  const [tradingPlatform, setTradingPlatform] = useState('MT5');
   const [accountNumber, setAccountNumber] = useState('');
 
   const [error, setError] = useState('');
@@ -42,6 +43,7 @@ const Account = () => {
     setError('');
     setBroker('XM');
     setAccountType('Standard account');
+    setTradingPlatform('MT5');
     setAccountNumber('');
     setIsModalOpen(true);
   };
@@ -69,6 +71,7 @@ const Account = () => {
       const created = await createUserAccount(user.uid, {
         broker,
         accountType,
+        tradingPlatform,
         accountNumber: accountNumber.trim(),
       });
       setAccounts(prev => [...prev, created]);
@@ -153,6 +156,18 @@ const Account = () => {
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Platform</label>
+                    <select
+                      value={tradingPlatform}
+                      onChange={e => setTradingPlatform(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-black border border-white/10 rounded-2xl focus:ring-1 focus:ring-amber-500/50 outline-none text-sm font-bold"
+                    >
+                      <option value="MT5">MT5</option>
+                      <option value="MT4">MT4</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">MT4/MT5 Account Number</label>
                     <input
                       type="text"
@@ -210,6 +225,7 @@ const Account = () => {
                     <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Index</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Broker Provider</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Type</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Platform</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Account ID</th>
                   </tr>
                 </thead>
@@ -227,6 +243,9 @@ const Account = () => {
                       </td>
                       <td className="px-8 py-5">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-tight">{acc.accountType}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className="text-xs font-black text-amber-500 uppercase tracking-widest">{acc.tradingPlatform || 'MT5'}</span>
                       </td>
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-2 text-amber-500 font-mono text-sm">
