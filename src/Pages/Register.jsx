@@ -17,7 +17,12 @@ import Footer from '../Components/Footer';
 const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const ref = searchParams.get('ref');
+  const referralParam =
+    searchParams.get('ref') ||
+    searchParams.get('referral') ||
+    searchParams.get('code') ||
+    searchParams.get('referal');
+  const ref = referralParam ? referralParam.trim().replace(/\/+$/, '') : null;
 
   const [formData, setFormData] = useState({
     firstName: '',

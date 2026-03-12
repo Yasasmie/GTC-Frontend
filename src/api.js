@@ -1,19 +1,34 @@
 // src/api.js
 
 // In Vite, environment variables are accessed via import.meta.env.
-// By default, target port 5000 on the same host the frontend was opened from.
+// Local development defaults to :5000, production defaults to same-origin.
 const DEFAULT_API_BASE =
   typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.hostname}:5000`
+    ? ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)
+      ? `${window.location.protocol}//${window.location.hostname}:5000`
+      : window.location.origin
     : 'http://localhost:5000';
 
-export const API_BASE = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
+export const API_BASE = (import.meta.env.VITE_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, '');
 
 // Helper to handle responses consistently
 const handleResponse = async (res, errorMessage) => {
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(text || errorMessage);
+    let message = text || errorMessage;
+
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed?.message) {
+          message = parsed.message;
+        }
+      } catch {
+        // Keep original text if it is not JSON.
+      }
+    }
+
+    throw new Error(message);
   }
   return res.json();
 };
