@@ -46,7 +46,6 @@ const ManageUsers = () => {
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [networkLoadingUid, setNetworkLoadingUid] = useState(null);
   const [userNetworks, setUserNetworks] = useState({});
-  const [selectedNetworkMember, setSelectedNetworkMember] = useState({});
   const [selectedKyc, setSelectedKyc] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -66,14 +65,19 @@ const ManageUsers = () => {
     loadUsers();
   }, []);
 
+  const rootClients = useMemo(
+    () => users.filter(user => !user.referredBy),
+    [users]
+  );
+
   const filteredUsers = useMemo(
     () =>
-      users.filter(
+      rootClients.filter(
         user =>
           (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
       ),
-    [users, searchTerm]
+    [rootClients, searchTerm]
   );
 
   const paginatedUsers = filteredUsers.slice(
@@ -88,10 +92,6 @@ const ManageUsers = () => {
     try {
       const data = await adminGetUserNetwork(user.uid);
       setUserNetworks(prev => ({ ...prev, [user.uid]: data }));
-      setSelectedNetworkMember(prev => ({
-        ...prev,
-        [user.uid]: prev[user.uid] || data.directReferrals[0]?.id || '',
-      }));
     } catch (err) {
       console.error(err);
       setError('Failed to load referral network.');
@@ -111,6 +111,13 @@ const ManageUsers = () => {
     }
   };
 
+  const refreshExpandedNetwork = async () => {
+    const expandedUser = users.find(user => user.id === expandedUserId);
+    if (expandedUser) {
+      await loadNetwork(expandedUser);
+    }
+  };
+
   const handleViewBots = user => {
     if (!user?.uid) {
       setError('This user has no UID recorded.');
@@ -119,8 +126,23 @@ const ManageUsers = () => {
     navigate(`/admin/users/${user.id}/bots?uid=${encodeURIComponent(user.uid)}`);
   };
 
+  const handleApproveUser = async id => {
+    setActionLoading(true);
+    try {
+      await adminApproveUser(id);
+      await loadUsers();
+      await refreshExpandedNetwork();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to approve user.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDelete = async id => {
     if (!window.confirm('TERMINATE USER: This action is irreversible. Proceed?')) return;
+    setActionLoading(true);
     try {
       await adminDeleteUser(id);
       await loadUsers();
@@ -128,6 +150,8 @@ const ManageUsers = () => {
     } catch (err) {
       console.error(err);
       setError('Failed to delete user.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -149,10 +173,9 @@ const ManageUsers = () => {
     try {
       if (status === 'approved') await approveKycRequest(selectedKyc.id);
       else await rejectKycRequest(selectedKyc.id);
-      const expandedUser = users.find(user => user.id === expandedUserId);
       closeKyc();
       await loadUsers();
-      if (expandedUser) await loadNetwork(expandedUser);
+      await refreshExpandedNetwork();
     } catch (err) {
       console.error(err);
       setError(`Failed to ${status === 'approved' ? 'approve' : 'reject'} KYC.`);
@@ -182,10 +205,10 @@ const ManageUsers = () => {
               </span>
             </div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase text-white">
-              User <span className="text-amber-500">Management</span>
+              Client <span className="text-amber-500">Networks</span>
             </h1>
             <p className="mt-3 text-sm text-zinc-500 max-w-2xl">
-              Expand a user to see the referral network under that referral link and review network KYC from the dropdown.
+              Only root clients are listed here. Expand a client to manage their network members and approvals.
             </p>
           </div>
 
@@ -210,7 +233,7 @@ const ManageUsers = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-amber-500" size={18} />
               <input
                 type="text"
-                placeholder="SEARCH NAME OR EMAIL..."
+                placeholder="SEARCH CLIENT NAME OR EMAIL..."
                 value={searchTerm}
                 onChange={e => {
                   setSearchTerm(e.target.value);
@@ -229,21 +252,18 @@ const ManageUsers = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-900/30 border-b border-white/5">
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">User</th>
+                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Client</th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">KYC</th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Performance</th>
                   <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Network</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {paginatedUsers.map(user => {
                   const networkData = userNetworks[user.uid];
                   const isExpanded = expandedUserId === user.id;
-                  const selectedMember = networkData?.directReferrals.find(
-                    member => member.id === Number(selectedNetworkMember[user.uid])
-                  );
+                  const canReviewClientKyc = !!user.kycCompleted;
 
                   return (
                     <React.Fragment key={user.id}>
@@ -265,15 +285,9 @@ const ManageUsers = () => {
                           </span>
                         </td>
                         <td className="px-6 py-5">
-                          <button
-                            type="button"
-                            onClick={() => user.kycCompleted && openKyc(user.id)}
-                            disabled={!user.kycCompleted}
-                            className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${user.kycCompleted ? 'text-zinc-300 hover:text-white' : 'text-zinc-600 cursor-not-allowed'}`}
-                          >
-                            {user.kycCompleted ? <ShieldCheck size={14} className="text-emerald-500" /> : <ShieldAlert size={14} />}
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badgeClass(kycText(user))}`}>
                             {kycText(user)}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-6 py-5">
                           <p className="text-xs font-black text-amber-500 uppercase">{user.totalSells || 0} Sales</p>
@@ -290,130 +304,135 @@ const ManageUsers = () => {
                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-2 justify-end">
-                            <button
-                              className="p-2.5 bg-zinc-900 rounded-xl hover:text-amber-500 border border-transparent hover:border-amber-500/30"
-                              onClick={() => handleViewBots(user)}
-                              title="View user bots"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {user.status !== 'approved' && (
-                              <button
-                                onClick={() => adminApproveUser(user.id).then(loadUsers).catch(() => setError('Failed to approve user.'))}
-                                className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-500"
-                              >
-                                Approve User
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(user.id)}
-                              className="p-2.5 bg-zinc-900 rounded-xl hover:text-rose-500 border border-transparent hover:border-rose-500/30"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
                       </tr>
 
                       {isExpanded && (
                         <tr className="bg-black/40">
-                          <td colSpan="6" className="px-6 pb-6">
-                            <div className="rounded-[2rem] border border-white/5 bg-black p-6">
+                          <td colSpan="5" className="px-6 pb-6">
+                            <div className="rounded-[2rem] border border-white/5 bg-black p-6 space-y-6">
                               {networkLoadingUid === user.uid ? (
                                 <div className="flex items-center justify-center py-10">
                                   <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500/20 border-t-amber-500" />
                                 </div>
-                              ) : !networkData || networkData.directReferrals.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-white/10 bg-zinc-950/60 p-8 text-center text-sm text-zinc-500">
-                                  No users have registered with this referral link yet.
-                                </div>
                               ) : (
-                                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                                  <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-5">
-                                    <div className="flex items-center justify-between mb-4">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Referral Network</p>
-                                      <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-500">
-                                        {networkData.referralCount} Members
-                                      </span>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-left">
-                                        <thead>
-                                          <tr className="border-b border-white/5 text-zinc-500">
-                                            <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">Name</th>
-                                            <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">Email</th>
-                                            <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">KYC</th>
-                                            <th className="py-3 text-[10px] font-black uppercase tracking-widest text-right">Action</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                          {networkData.directReferrals.map(member => (
-                                            <tr key={member.id}>
-                                              <td className="py-3 pr-4 text-sm font-bold text-white">{member.name || 'Unknown User'}</td>
-                                              <td className="py-3 pr-4 text-xs text-zinc-500">{member.email}</td>
-                                              <td className="py-3 pr-4">
-                                                <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badgeClass(kycText(member))}`}>
-                                                  {kycText(member)}
-                                                </span>
-                                              </td>
-                                              <td className="py-3 text-right">
-                                                <button
-                                                  type="button"
-                                                  disabled={!member.hasKyc}
-                                                  onClick={() => openKyc(member.id)}
-                                                  className="rounded-xl bg-amber-500 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-black hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-600"
-                                                >
-                                                  {member.hasKyc ? 'Review KYC' : 'No KYC'}
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-
-                                  <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-5">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-3">KYC Dropdown Review</p>
-                                    <select
-                                      value={selectedNetworkMember[user.uid] || ''}
-                                      onChange={e => setSelectedNetworkMember(prev => ({ ...prev, [user.uid]: Number(e.target.value) }))}
-                                      className="w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-amber-500/40"
-                                    >
-                                      {networkData.directReferrals.map(member => (
-                                        <option key={member.id} value={member.id}>
-                                          {(member.name || member.email) + ' - ' + kycText(member).toUpperCase()}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    {selectedMember && (
-                                      <div className="mt-4 rounded-2xl border border-white/5 bg-black p-4">
-                                        <p className="text-lg font-black text-white uppercase tracking-tight">{selectedMember.name || 'Unnamed User'}</p>
-                                        <p className="mt-1 text-xs text-zinc-500">{selectedMember.email}</p>
-                                        <div className="mt-4 space-y-2 text-xs uppercase tracking-widest">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-zinc-500">User Status</span>
-                                            <span className="text-white">{selectedMember.status}</span>
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-zinc-500">KYC Status</span>
-                                            <span className="text-white">{kycText(selectedMember)}</span>
-                                          </div>
-                                        </div>
+                                <>
+                                  <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                                    <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-5">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-4">Client Controls</p>
+                                      <div className="grid gap-3">
                                         <button
                                           type="button"
-                                          onClick={() => openKyc(selectedMember.id)}
-                                          disabled={!selectedMember.hasKyc}
-                                          className="mt-5 w-full rounded-2xl bg-amber-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-black hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-600"
+                                          onClick={() => handleViewBots(user)}
+                                          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-200 hover:border-amber-500/40 hover:text-white inline-flex items-center justify-center gap-2"
                                         >
-                                          {selectedMember.hasKyc ? 'Open KYC Review' : 'No KYC Submitted'}
+                                          <Eye size={14} /> View Client Bots
+                                        </button>
+                                        {user.status !== 'approved' && (
+                                          <button
+                                            type="button"
+                                            disabled={actionLoading}
+                                            onClick={() => handleApproveUser(user.id)}
+                                            className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-500 disabled:opacity-50"
+                                          >
+                                            Approve Client User
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => openKyc(user.id)}
+                                          disabled={!canReviewClientKyc}
+                                          className="w-full rounded-xl bg-amber-500 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-600"
+                                        >
+                                          {canReviewClientKyc ? 'Review Client KYC' : 'Client KYC Not Submitted'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDelete(user.id)}
+                                          disabled={actionLoading}
+                                          className="w-full rounded-xl bg-rose-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-500 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                                        >
+                                          <Trash2 size={14} /> Delete Client
                                         </button>
                                       </div>
-                                    )}
+                                    </div>
+
+                                    <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-5">
+                                      <div className="flex items-center justify-between mb-4">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Referral Network</p>
+                                        <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-500">
+                                          {networkData?.referralCount || 0} Members
+                                        </span>
+                                      </div>
+
+                                      {!networkData || networkData.directReferrals.length === 0 ? (
+                                        <div className="rounded-2xl border border-dashed border-white/10 bg-black p-8 text-center text-sm text-zinc-500">
+                                          No users have registered with this referral link yet.
+                                        </div>
+                                      ) : (
+                                        <div className="overflow-x-auto">
+                                          <table className="w-full text-left">
+                                            <thead>
+                                              <tr className="border-b border-white/5 text-zinc-500">
+                                                <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">Name</th>
+                                                <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">Email</th>
+                                                <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">Status</th>
+                                                <th className="py-3 pr-4 text-[10px] font-black uppercase tracking-widest">KYC</th>
+                                                <th className="py-3 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                              {networkData.directReferrals.map(member => (
+                                                <tr key={member.id}>
+                                                  <td className="py-3 pr-4 text-sm font-bold text-white">{member.name || 'Unknown User'}</td>
+                                                  <td className="py-3 pr-4 text-xs text-zinc-500">{member.email}</td>
+                                                  <td className="py-3 pr-4">
+                                                    <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badgeClass(member.status)}`}>
+                                                      {member.status || 'pending'}
+                                                    </span>
+                                                  </td>
+                                                  <td className="py-3 pr-4">
+                                                    <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badgeClass(kycText(member))}`}>
+                                                      {kycText(member)}
+                                                    </span>
+                                                  </td>
+                                                  <td className="py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleViewBots(member)}
+                                                        className="rounded-xl bg-zinc-900 border border-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-200 hover:border-amber-500/40 hover:text-white inline-flex items-center gap-1"
+                                                      >
+                                                        <Eye size={12} /> Bots
+                                                      </button>
+                                                      {member.status !== 'approved' && (
+                                                        <button
+                                                          type="button"
+                                                          disabled={actionLoading}
+                                                          onClick={() => handleApproveUser(member.id)}
+                                                          className="rounded-xl bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-500 disabled:opacity-50"
+                                                        >
+                                                          Approve
+                                                        </button>
+                                                      )}
+                                                      <button
+                                                        type="button"
+                                                        disabled={!member.hasKyc}
+                                                        onClick={() => openKyc(member.id)}
+                                                        className="rounded-xl bg-amber-500 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-black hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-600"
+                                                      >
+                                                        {member.hasKyc ? 'KYC' : 'No KYC'}
+                                                      </button>
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
+                                </>
                               )}
                             </div>
                           </td>

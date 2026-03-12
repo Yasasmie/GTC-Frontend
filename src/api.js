@@ -82,6 +82,11 @@ export const adminGetUserNetwork = async (uid) => {
   return handleResponse(res, 'Failed to load referral network');
 };
 
+export const getUserNetwork = async (uid) => {
+  const res = await fetch(`${API_BASE}/api/admin/users/${uid}/network`);
+  return handleResponse(res, 'Failed to load client network');
+};
+
 export const adminDeleteUser = async (id) => {
   const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
     method: 'DELETE',

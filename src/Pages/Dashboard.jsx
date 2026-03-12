@@ -16,7 +16,7 @@ import {
   BadgeCheck
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import { getUserByUid, getUserDashboardPayments } from '../api';
+import { getUserByUid, getUserDashboardPayments, getUserNetwork } from '../api';
 
 const Dashboard = () => {
   const { currentUser, userProfile } = useOutletContext();
@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [dashboardPayments, setDashboardPayments] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [referralOwner, setReferralOwner] = useState(null);
+  const [myNetwork, setMyNetwork] = useState(null);
   const [stats, setStats] = useState({
     totalSells: 0,
     totalRevenue: 0,
@@ -58,6 +59,25 @@ const Dashboard = () => {
       }));
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    const loadMyNetwork = async () => {
+      if (!currentUser?.uid || isReferredUser) {
+        setMyNetwork(null);
+        return;
+      }
+
+      try {
+        const data = await getUserNetwork(currentUser.uid);
+        setMyNetwork(data);
+      } catch (err) {
+        console.error('Failed to load my referral network', err);
+        setMyNetwork(null);
+      }
+    };
+
+    loadMyNetwork();
+  }, [currentUser, isReferredUser]);
 
   useEffect(() => {
     const loadPaymentData = async () => {
@@ -132,7 +152,6 @@ const Dashboard = () => {
   const selectedMonthLabel =
     dashboardPayments?.monthOptions?.find(option => option.value === selectedMonth)?.label ||
     'Current Month';
-  const monthlyAdminPayments = dashboardPayments?.monthly?.adminPayments?.[selectedMonth] || 0;
   const monthlyClientPayments = dashboardPayments?.monthly?.clientPayments?.[selectedMonth] || 0;
   const monthlyProfit = dashboardPayments?.monthly?.profits?.[selectedMonth] || 0;
 
@@ -191,6 +210,29 @@ const Dashboard = () => {
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {!isReferredUser && (
+        <div className="bg-zinc-950 rounded-3xl border border-white/5 p-6 shadow-2xl">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">My Client Network</p>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-500">
+              {(myNetwork?.referralCount || 0).toLocaleString()} Members
+            </span>
+          </div>
+          {!myNetwork || myNetwork.directReferrals.length === 0 ? (
+            <p className="text-sm text-zinc-500">No referrals joined with your link yet.</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {myNetwork.directReferrals.slice(0, 6).map(member => (
+                <div key={member.id} className="rounded-2xl border border-white/5 bg-black/40 px-4 py-3">
+                  <p className="text-sm font-black text-white uppercase tracking-tight">{member.name || 'Unnamed Client'}</p>
+                  <p className="text-[10px] font-mono text-zinc-500">{member.email}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
