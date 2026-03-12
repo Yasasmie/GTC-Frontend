@@ -235,8 +235,8 @@ const Bots = () => {
           'Payment slip uploaded in system.',
         ].join('\n')
       );
-    } catch {
-      setError('Deployment failed. Internal server error.');
+    } catch (err) {
+      setError(err?.message || 'Deployment failed. Internal server error.');
     } finally {
       setCreating(false);
     }
